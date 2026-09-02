@@ -2,8 +2,10 @@
 Camada responsável por consultar o banco de dados e transformar
 os resultados em estruturas utilizadas pela aplicação.
 
-Nesta fase, o principal objetivo é carregar os dados históricos
-da pastelaria em um pandas.DataFrame.
+Nesta etapa, o módulo fornece:
+
+- carregamento dos dados históricos;
+- carregamento de possíveis problemas de integridade referencial.
 """
 
 from typing import Any
@@ -11,22 +13,24 @@ from typing import Any
 import pandas as pd
 
 from database.connection import get_connection
-from database.queries import QUERY_HISTORICAL_DATA
+from database.queries import (
+    QUERY_HISTORICAL_DATA,
+    QUERY_REFERENTIAL_INTEGRITY,
+)
 
 
-def load_historical_data() -> pd.DataFrame:
+def _execute_query(query: str) -> pd.DataFrame:
     """
-    Consulta os registros históricos da pastelaria no MySQL.
+    Executa uma consulta SQL e retorna o resultado em DataFrame.
 
-    Os dados são convertidos para um pandas.DataFrame para serem
-    utilizados posteriormente nas etapas de análise, tratamento
-    e modelagem.
+    Args:
+        query: Consulta SQL que será executada.
 
     Returns:
-        pd.DataFrame: DataFrame contendo os registros históricos.
+        pd.DataFrame: Resultado da consulta.
 
     Raises:
-        RuntimeError: Caso ocorra algum erro durante a consulta.
+        RuntimeError: Caso ocorra algum erro durante a execução.
     """
 
     connection = None
@@ -37,20 +41,18 @@ def load_historical_data() -> pd.DataFrame:
 
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute(QUERY_HISTORICAL_DATA)
+        cursor.execute(query)
 
         rows: list[dict[str, Any]] = cursor.fetchall()
 
         if not rows:
             return pd.DataFrame(columns=cursor.column_names)
 
-        dataframe = pd.DataFrame(rows)
-
-        return dataframe
+        return pd.DataFrame(rows)
 
     except Exception as exc:
         raise RuntimeError(
-            f"Erro ao carregar os dados históricos: {exc}"
+            f"Erro ao executar consulta no banco: {exc}"
         ) from exc
 
     finally:
@@ -59,3 +61,32 @@ def load_historical_data() -> pd.DataFrame:
 
         if connection is not None and connection.is_connected():
             connection.close()
+
+
+def load_historical_data() -> pd.DataFrame:
+    """
+    Carrega os registros históricos da pastelaria.
+
+    Returns:
+        pd.DataFrame: Dados históricos utilizados pelo projeto.
+    """
+
+    return _execute_query(QUERY_HISTORICAL_DATA)
+
+
+def load_referential_integrity_issues() -> pd.DataFrame:
+    """
+    Procura referências inválidas entre as tabelas do banco.
+
+    Exemplos:
+
+    - operação apontando para feira inexistente;
+    - registro apontando para operação inexistente;
+    - registro apontando para produto inexistente;
+    - produto apontando para categoria inexistente.
+
+    Returns:
+        pd.DataFrame: Problemas de integridade encontrados.
+    """
+
+    return _execute_query(QUERY_REFERENTIAL_INTEGRITY)
