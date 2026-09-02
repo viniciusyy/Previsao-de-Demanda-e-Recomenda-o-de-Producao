@@ -18,9 +18,6 @@ from preprocessing.validation import (
 
 
 def main() -> None:
-    """
-    Executa a Fase 3 do projeto.
-    """
 
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
@@ -39,7 +36,9 @@ def main() -> None:
         print("Conectando ao banco de dados...")
 
         if test_connection():
-            print("Conexão com MySQL realizada com sucesso.")
+            print(
+                "Conexão com MySQL realizada com sucesso."
+            )
 
         # ====================================================
         # CARREGAMENTO DOS DADOS
@@ -50,7 +49,9 @@ def main() -> None:
 
         df = load_historical_data()
 
-        print("Dados carregados com sucesso.")
+        print(
+            "Dados carregados com sucesso."
+        )
 
         print()
         print(
@@ -67,7 +68,9 @@ def main() -> None:
         # ====================================================
 
         print()
-        print("Verificando integridade do banco...")
+        print(
+            "Verificando integridade do banco..."
+        )
 
         referential_issues = (
             load_referential_integrity_issues()
@@ -90,14 +93,22 @@ def main() -> None:
         # ====================================================
 
         print()
-        print("Executando validações dos dados...")
+        print(
+            "Executando validações dos dados..."
+        )
 
-        summary, details = validate_historical_data(
+        (
+            summary,
+            details,
+            censored,
+        ) = validate_historical_data(
             dataframe=df,
             referential_issues=referential_issues,
         )
 
-        print("Validação concluída.")
+        print(
+            "Validação concluída."
+        )
 
         # ====================================================
         # RESUMO
@@ -117,7 +128,9 @@ def main() -> None:
                     "quantidade",
                     "status",
                 ]
-            ].to_string(index=False)
+            ].to_string(
+                index=False
+            )
         )
 
         # ====================================================
@@ -145,22 +158,36 @@ def main() -> None:
         print("=" * 70)
         print()
 
-        print(f"Erros encontrados: {int(errors)}")
-        print(f"Alertas encontrados: {int(warnings)}")
+        print(
+            f"Erros encontrados: {int(errors)}"
+        )
+
+        print(
+            f"Alertas encontrados: {int(warnings)}"
+        )
+
         print(
             f"Informações registradas: "
             f"{int(informations)}"
         )
 
+        print(
+            f"Possíveis casos de demanda censurada: "
+            f"{len(censored)}"
+        )
+
         # ====================================================
-        # RELATÓRIO
+        # RELATÓRIOS
         # ====================================================
 
-        summary_path, details_path = (
-            save_validation_reports(
-                summary,
-                details,
-            )
+        (
+            summary_path,
+            details_path,
+            censored_path,
+        ) = save_validation_reports(
+            summary=summary,
+            details=details,
+            censored=censored,
         )
 
         print()
@@ -170,11 +197,31 @@ def main() -> None:
         print()
 
         print(
-            f"Resumo: {summary_path}"
+            f"Resumo da validação:"
         )
 
         print(
-            f"Detalhes: {details_path}"
+            summary_path
+        )
+
+        print()
+
+        print(
+            "Erros e alertas:"
+        )
+
+        print(
+            details_path
+        )
+
+        print()
+
+        print(
+            "Possíveis casos de demanda censurada:"
+        )
+
+        print(
+            censored_path
         )
 
         # ====================================================
@@ -189,18 +236,19 @@ def main() -> None:
 
         if errors > 0:
             print(
-                "A base possui inconsistências classificadas "
-                "como ERRO."
+                "A base possui inconsistências "
+                "classificadas como ERRO."
             )
 
             print(
-                "Esses registros deverão ser analisados antes "
-                "de serem utilizados na modelagem."
+                "Esses registros deverão ser analisados "
+                "antes de serem utilizados na modelagem."
             )
 
         else:
             print(
-                "Nenhuma inconsistência crítica foi encontrada."
+                "Nenhuma inconsistência crítica "
+                "foi encontrada."
             )
 
         if warnings > 0:
@@ -208,11 +256,27 @@ def main() -> None:
                 "Existem ALERTAS que devem ser revisados, "
                 "mas não necessariamente representam erro."
             )
-
-        if informations > 0:
+        else:
             print(
-                "Existem registros informativos, como possíveis "
-                "casos de demanda censurada."
+                "Nenhum alerta foi encontrado."
+            )
+
+        if not censored.empty:
+            print()
+            print(
+                "Foram identificados registros em que "
+                "toda a produção foi vendida."
+            )
+
+            print(
+                "Esses registros foram separados no arquivo "
+                "demanda_censurada.csv."
+            )
+
+            print(
+                "Eles não representam erro, mas indicam que "
+                "a demanda real pode ter sido superior "
+                "à quantidade observada de vendas."
             )
 
         print()
@@ -222,15 +286,16 @@ def main() -> None:
 
         print()
         print("=" * 70)
-        print("EXECUTADA")
+
         print("=" * 70)
 
     except Exception as exc:
         print()
         print("=" * 70)
-        print("ERRO ")
+        print("ERRO")
         print("=" * 70)
         print()
+
         print(exc)
 
 

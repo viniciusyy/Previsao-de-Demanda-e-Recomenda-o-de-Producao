@@ -124,17 +124,28 @@ def _create_issue_rows(
     description: str,
 ) -> list[dict]:
     """
-    Cria linhas detalhadas para registros que falharam em uma validação.
+    Cria linhas detalhadas para registros que falharam
+    em uma validação.
 
     Args:
-        dataframe: DataFrame analisado.
-        mask: Série booleana indicando registros problemáticos.
-        validation: Código da validação.
-        level: ERRO, ALERTA ou INFO.
-        description: Explicação do problema.
+        dataframe:
+            DataFrame analisado.
+
+        mask:
+            Série booleana indicando registros problemáticos.
+
+        validation:
+            Código da validação.
+
+        level:
+            ERRO ou ALERTA.
+
+        description:
+            Explicação do problema.
 
     Returns:
-        list[dict]: Lista contendo os problemas encontrados.
+        list[dict]:
+            Lista com os problemas encontrados.
     """
 
     issues = []
@@ -186,7 +197,11 @@ def _register_validation(
 def validate_historical_data(
     dataframe: pd.DataFrame,
     referential_issues: pd.DataFrame | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+]:
     """
     Executa as validações dos dados históricos.
 
@@ -195,16 +210,17 @@ def validate_historical_data(
             DataFrame carregado do MySQL.
 
         referential_issues:
-            Problemas encontrados diretamente no banco por meio
-            da consulta de integridade referencial.
+            Problemas encontrados diretamente no banco
+            por meio da consulta de integridade referencial.
 
     Returns:
         tuple:
-            Primeiro DataFrame:
-                resumo das validações.
+            1. DataFrame com o resumo das validações.
 
-            Segundo DataFrame:
-                detalhes dos registros problemáticos.
+            2. DataFrame contendo somente ERROS e ALERTAS.
+
+            3. DataFrame contendo possíveis casos de
+               demanda censurada.
     """
 
     if dataframe.empty:
@@ -216,6 +232,31 @@ def validate_historical_data(
 
     summary: list[dict] = []
     detailed_issues: list[dict] = []
+
+    details_columns = [
+        "indice_dataframe",
+        "nivel",
+        "validacao",
+        "id_operacao",
+        "data_venda",
+        "feira",
+        "id_produto",
+        "produto",
+        "descricao",
+    ]
+
+    censored_columns = [
+        "indice_dataframe",
+        "id_operacao",
+        "data_venda",
+        "feira",
+        "id_produto",
+        "produto",
+        "quantidade_produzida",
+        "quantidade_vendida",
+        "quantidade_sobra",
+        "descricao",
+    ]
 
     # ========================================================
     # 1. COLUNAS OBRIGATÓRIAS
@@ -258,7 +299,11 @@ def validate_historical_data(
 
         return (
             pd.DataFrame(summary),
-            pd.DataFrame(detailed_issues),
+            pd.DataFrame(
+                detailed_issues,
+                columns=details_columns,
+            ),
+            pd.DataFrame(columns=censored_columns),
         )
 
     # ========================================================
@@ -289,7 +334,7 @@ def validate_historical_data(
         )
 
     # ========================================================
-    # PREPARAÇÃO DE CÓPIAS NUMÉRICAS
+    # PREPARAÇÃO DE VALORES NUMÉRICOS
     # ========================================================
 
     numeric_columns = [
@@ -340,6 +385,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = produced < 0
+
     count = int(mask.sum())
 
     _register_validation(
@@ -365,6 +411,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = leftover < 0
+
     count = int(mask.sum())
 
     _register_validation(
@@ -390,6 +437,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = sold < 0
+
     count = int(mask.sum())
 
     _register_validation(
@@ -415,6 +463,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = leftover > produced
+
     count = int(mask.sum())
 
     _register_validation(
@@ -431,7 +480,10 @@ def validate_historical_data(
             mask,
             "SOBRA_MAIOR_QUE_PRODUCAO",
             "ERRO",
-            "Quantidade de sobra maior que quantidade produzida.",
+            (
+                "Quantidade de sobra maior que "
+                "quantidade produzida."
+            ),
         )
     )
 
@@ -440,6 +492,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = sold > produced
+
     count = int(mask.sum())
 
     _register_validation(
@@ -447,7 +500,10 @@ def validate_historical_data(
         "VENDA_MAIOR_QUE_PRODUCAO",
         "ERRO",
         count,
-        "A venda não pode ser superior à produção registrada.",
+        (
+            "A quantidade vendida não pode ser "
+            "superior à produção."
+        ),
     )
 
     detailed_issues.extend(
@@ -456,7 +512,10 @@ def validate_historical_data(
             mask,
             "VENDA_MAIOR_QUE_PRODUCAO",
             "ERRO",
-            "Quantidade vendida maior que quantidade produzida.",
+            (
+                "Quantidade vendida maior que "
+                "quantidade produzida."
+            ),
         )
     )
 
@@ -482,9 +541,7 @@ def validate_historical_data(
         "VENDA_INCONSISTENTE",
         "ERRO",
         count,
-        (
-            "Verifica se vendido = produzido - sobra."
-        ),
+        "Verifica se vendido = produzido - sobra.",
     )
 
     detailed_issues.extend(
@@ -569,6 +626,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = sale_date < production_date
+
     count = int(mask.sum())
 
     _register_validation(
@@ -592,13 +650,6 @@ def validate_historical_data(
     # ========================================================
     # 11. INTERVALO ENTRE PRODUÇÃO E VENDA
     # ========================================================
-    #
-    # Atualmente todas as operações possuem produção
-    # no dia anterior à venda.
-    #
-    # Como podem existir exceções operacionais no futuro,
-    # tratamos como ALERTA e não como erro fatal.
-    # ========================================================
 
     interval_days = (
         sale_date - production_date
@@ -617,8 +668,8 @@ def validate_historical_data(
         "ALERTA",
         count,
         (
-            "Atualmente espera-se um dia entre produção "
-            "e venda."
+            "Atualmente espera-se um dia entre "
+            "produção e venda."
         ),
     )
 
@@ -629,8 +680,8 @@ def validate_historical_data(
             "INTERVALO_PRODUCAO_VENDA",
             "ALERTA",
             (
-                "Intervalo entre produção e venda diferente "
-                "de um dia."
+                "Intervalo entre produção e venda "
+                "diferente de um dia."
             ),
         )
     )
@@ -640,6 +691,7 @@ def validate_historical_data(
     # ========================================================
 
     mask = ~df["feira"].isin(VALID_FAIRS)
+
     count = int(mask.sum())
 
     _register_validation(
@@ -682,8 +734,8 @@ def validate_historical_data(
         "ALERTA",
         count,
         (
-            "Verifica se a data de venda corresponde ao "
-            "dia normalmente associado à feira."
+            "Verifica se a data de venda corresponde "
+            "ao dia associado à feira."
         ),
     )
 
@@ -693,7 +745,10 @@ def validate_historical_data(
             mask,
             "DIA_VENDA_INESPERADO",
             "ALERTA",
-            "Dia da semana da venda diferente do esperado.",
+            (
+                "Dia da semana da venda diferente "
+                "do esperado."
+            ),
         )
     )
 
@@ -733,7 +788,10 @@ def validate_historical_data(
             mask,
             "DIA_PRODUCAO_INESPERADO",
             "ALERTA",
-            "Dia da semana da produção diferente do esperado.",
+            (
+                "Dia da semana da produção diferente "
+                "do esperado."
+            ),
         )
     )
 
@@ -746,7 +804,9 @@ def validate_historical_data(
         errors="coerce",
     )
 
-    mask = ~product_ids.isin(VALID_PRODUCT_IDS)
+    mask = ~product_ids.isin(
+        VALID_PRODUCT_IDS
+    )
 
     count = int(mask.sum())
 
@@ -755,7 +815,10 @@ def validate_historical_data(
         "PRODUTO_INVALIDO",
         "ERRO",
         count,
-        "Verifica se o produto pertence aos IDs cadastrados.",
+        (
+            "Verifica se o produto pertence aos "
+            "IDs cadastrados."
+        ),
     )
 
     detailed_issues.extend(
@@ -772,7 +835,9 @@ def validate_historical_data(
     # 16. CATEGORIA INVÁLIDA
     # ========================================================
 
-    mask = ~df["categoria"].isin(VALID_CATEGORIES)
+    mask = ~df["categoria"].isin(
+        VALID_CATEGORIES
+    )
 
     count = int(mask.sum())
 
@@ -798,7 +863,9 @@ def validate_historical_data(
     # 17. CLIMA INVÁLIDO
     # ========================================================
 
-    mask = ~df["clima"].isin(VALID_CLIMATES)
+    mask = ~df["clima"].isin(
+        VALID_CLIMATES
+    )
 
     count = int(mask.sum())
 
@@ -825,10 +892,6 @@ def validate_historical_data(
 
     # ========================================================
     # 18. REGISTROS DUPLICADOS
-    # ========================================================
-    #
-    # Uma operação não deve possuir o mesmo produto
-    # registrado mais de uma vez.
     # ========================================================
 
     mask = df.duplicated(
@@ -880,7 +943,9 @@ def validate_historical_data(
             & (product_ids == product_id)
         )
 
-    count = int(prohibited_mask.sum())
+    count = int(
+        prohibited_mask.sum()
+    )
 
     _register_validation(
         summary,
@@ -912,7 +977,9 @@ def validate_historical_data(
         errors="coerce",
     )
 
-    mask = ~holiday_indicator.isin([0, 1])
+    mask = ~holiday_indicator.isin(
+        [0, 1]
+    )
 
     count = int(mask.sum())
 
@@ -930,7 +997,10 @@ def validate_historical_data(
             mask,
             "INDICADOR_FERIADO_INVALIDO",
             "ERRO",
-            "Indicador de feriado diferente de 0 ou 1.",
+            (
+                "Indicador de feriado diferente "
+                "de 0 ou 1."
+            ),
         )
     )
 
@@ -944,7 +1014,13 @@ def validate_historical_data(
             df["nome_feriado"]
             .astype(str)
             .str.strip()
-            .isin(["", "nan", "None"])
+            .isin(
+                [
+                    "",
+                    "nan",
+                    "None",
+                ]
+            )
         )
     )
 
@@ -961,8 +1037,8 @@ def validate_historical_data(
         "ALERTA",
         count,
         (
-            "Quando eh_feriado = 1, espera-se que o nome "
-            "do feriado esteja informado."
+            "Quando eh_feriado = 1, espera-se que "
+            "o nome do feriado esteja informado."
         ),
     )
 
@@ -980,7 +1056,9 @@ def validate_historical_data(
     # 22. DIA NORMAL COM NOME DE FERIADO
     # ========================================================
 
-    holiday_name_present = ~holiday_name_missing
+    holiday_name_present = (
+        ~holiday_name_missing
+    )
 
     mask = (
         (holiday_indicator == 0)
@@ -1017,46 +1095,62 @@ def validate_historical_data(
     # 23. POSSÍVEL DEMANDA CENSURADA
     # ========================================================
     #
-    # NÃO é considerado erro.
+    # NÃO é erro.
     #
-    # Quando:
+    # Quando toda a produção é vendida e não existe sobra,
+    # não sabemos se poderiam ter ocorrido vendas adicionais.
     #
-    # sobra = 0
-    # vendido = produzido
-    #
-    # não sabemos se existia demanda adicional.
+    # Esses registros serão exportados SEPARADAMENTE.
     # ========================================================
 
-    mask = (
+    censored_mask = (
         (produced > 0)
         & (leftover == 0)
         & (sold == produced)
     )
 
-    count = int(mask.sum())
+    censored_count = int(
+        censored_mask.sum()
+    )
 
     _register_validation(
         summary,
         "POSSIVEL_DEMANDA_CENSURADA",
         "INFO",
-        count,
+        censored_count,
         (
             "Produto vendeu toda a produção e terminou "
             "sem sobra. Pode ter existido demanda adicional."
         ),
     )
 
-    detailed_issues.extend(
-        _create_issue_rows(
-            df,
-            mask,
-            "POSSIVEL_DEMANDA_CENSURADA",
-            "INFO",
-            (
-                "Toda a produção foi vendida. "
-                "Não é possível observar eventual demanda perdida."
-            ),
-        )
+    censored_df = df.loc[
+        censored_mask,
+        [
+            "id_operacao",
+            "data_venda",
+            "feira",
+            "id_produto",
+            "produto",
+            "quantidade_produzida",
+            "quantidade_vendida",
+            "quantidade_sobra",
+        ],
+    ].copy()
+
+    censored_df.insert(
+        0,
+        "indice_dataframe",
+        censored_df.index,
+    )
+
+    censored_df["descricao"] = (
+        "Toda a produção foi vendida. "
+        "Não é possível observar eventual demanda perdida."
+    )
+
+    censored_df = censored_df.reset_index(
+        drop=True
     )
 
     # ========================================================
@@ -1064,7 +1158,9 @@ def validate_historical_data(
     # ========================================================
 
     if referential_issues is not None:
-        count = len(referential_issues)
+        count = len(
+            referential_issues
+        )
 
         _register_validation(
             summary,
@@ -1072,8 +1168,8 @@ def validate_historical_data(
             "ERRO",
             count,
             (
-                "Verifica referências inexistentes entre "
-                "as tabelas do banco."
+                "Verifica referências inexistentes "
+                "entre as tabelas do banco."
             ),
         )
 
@@ -1084,12 +1180,18 @@ def validate_historical_data(
                         "indice_dataframe": None,
                         "nivel": "ERRO",
                         "validacao": row.get("tipo"),
-                        "id_operacao": row.get("id_operacao"),
+                        "id_operacao": row.get(
+                            "id_operacao"
+                        ),
                         "data_venda": None,
                         "feira": None,
-                        "id_produto": row.get("id_produto"),
+                        "id_produto": row.get(
+                            "id_produto"
+                        ),
                         "produto": None,
-                        "descricao": row.get("descricao"),
+                        "descricao": row.get(
+                            "descricao"
+                        ),
                     }
                 )
 
@@ -1097,41 +1199,56 @@ def validate_historical_data(
     # DATAFRAMES FINAIS
     # ========================================================
 
-    summary_df = pd.DataFrame(summary)
-
-    details_columns = [
-        "indice_dataframe",
-        "nivel",
-        "validacao",
-        "id_operacao",
-        "data_venda",
-        "feira",
-        "id_produto",
-        "produto",
-        "descricao",
-    ]
+    summary_df = pd.DataFrame(
+        summary
+    )
 
     details_df = pd.DataFrame(
         detailed_issues,
         columns=details_columns,
     )
 
-    return summary_df, details_df
+    if censored_df.empty:
+        censored_df = pd.DataFrame(
+            columns=censored_columns
+        )
+
+    return (
+        summary_df,
+        details_df,
+        censored_df,
+    )
 
 
 def save_validation_reports(
     summary: pd.DataFrame,
     details: pd.DataFrame,
-) -> tuple[Path, Path]:
+    censored: pd.DataFrame,
+) -> tuple[
+    Path,
+    Path,
+    Path,
+]:
     """
-    Salva os relatórios da validação em CSV.
+    Salva os relatórios de validação em arquivos CSV.
+
+    Arquivos gerados:
+
+    - validacao_resumo.csv
+    - validacao_detalhes.csv
+    - demanda_censurada.csv
 
     Returns:
-        tuple[Path, Path]:
-            Caminho do relatório resumido e detalhado.
+        tuple[Path, Path, Path]:
+            Caminhos dos três relatórios.
     """
 
-    project_root = Path(__file__).resolve().parent.parent
+    project_root = (
+        Path(__file__)
+        .resolve()
+        .parent
+        .parent
+    )
 
     output_directory = (
         project_root
@@ -1154,6 +1271,11 @@ def save_validation_reports(
         / "validacao_detalhes.csv"
     )
 
+    censored_path = (
+        output_directory
+        / "demanda_censurada.csv"
+    )
+
     summary.to_csv(
         summary_path,
         index=False,
@@ -1166,4 +1288,14 @@ def save_validation_reports(
         encoding="utf-8-sig",
     )
 
-    return summary_path, details_path
+    censored.to_csv(
+        censored_path,
+        index=False,
+        encoding="utf-8-sig",
+    )
+
+    return (
+        summary_path,
+        details_path,
+        censored_path,
+    )
