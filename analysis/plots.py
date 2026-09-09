@@ -864,3 +864,96 @@ def generate_granularity_plots(
             analyses
         ),
     ]
+
+def plot_feature_engineering_impact(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """
+    Compara a quantidade de linhas antes
+    e depois da criação das janelas históricas.
+    """
+
+    summary = analyses[
+        "resumo_engenharia_atributos"
+    ].iloc[0]
+
+    before = int(
+        summary[
+            "linhas_categoria_feira"
+        ]
+    )
+
+    after = int(
+        summary[
+            "linhas_dataset_modelagem"
+        ]
+    )
+
+    labels = [
+        "Antes dos lags\ne médias móveis",
+        "Dataset de\nmodelagem",
+    ]
+
+    values = [
+        before,
+        after,
+    ]
+
+    plt.figure(
+        figsize=(8, 6)
+    )
+
+    bars = plt.bar(
+        labels,
+        values,
+    )
+
+    for bar, value in zip(
+        bars,
+        values,
+    ):
+        plt.text(
+            bar.get_x()
+            + bar.get_width() / 2,
+            bar.get_height()
+            + before * 0.02,
+            str(value),
+            ha="center",
+        )
+
+    plt.title(
+        "Impacto das janelas históricas no dataset"
+    )
+
+    plt.xlabel(
+        "Etapa"
+    )
+
+    plt.ylabel(
+        "Quantidade de linhas"
+    )
+
+    plt.ylim(
+        0,
+        before * 1.15,
+    )
+
+    plt.grid(
+        axis="y",
+        alpha=0.3,
+    )
+
+    return _save_figure(
+        "14_impacto_engenharia_atributos.png"
+    )
+
+
+def generate_feature_engineering_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+
+    return [
+        plot_feature_engineering_impact(
+            analyses
+        ),
+    ]

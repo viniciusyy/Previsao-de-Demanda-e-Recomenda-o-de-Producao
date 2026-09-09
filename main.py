@@ -4,31 +4,28 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Definição da granularidade da previsão.
+Engenharia de atributos.
 
 Fluxo:
 
 MySQL
     ↓
-Carregamento
+Carregamento e validação
     ↓
-Validação
+Agregação por categoria + feira
     ↓
-Comparação das granularidades
+Atributos temporais
     ↓
-Escolha da granularidade
+Lags e médias móveis
     ↓
-Tabelas e gráficos
+Validação contra vazamento temporal
+    ↓
+Dataset de modelagem
 
-Nenhum modelo de previsão é treinado nesta fase.
 """
 
-from analysis.granularity import (
-    run_granularity_analysis,
-    save_granularity_tables,
-)
 from analysis.plots import (
-    generate_granularity_plots,
+    generate_feature_engineering_plots,
 )
 from database.connection import (
     test_connection,
@@ -37,25 +34,24 @@ from database.repository import (
     load_historical_data,
     load_referential_integrity_issues,
 )
+from preprocessing.features import (
+    run_feature_engineering,
+    save_feature_engineering_outputs,
+)
 from preprocessing.validation import (
     validate_historical_data,
 )
 
 
 def main() -> None:
-    """
-    Executa a Fase 5 do projeto.
-    """
+ 
 
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
     print("E RECOMENDAÇÃO DE PRODUÇÃO")
     print("=" * 70)
 
-    print()
-    print(
-        "DEFINIÇÃO DA GRANULARIDADE"
-    )
+
     print()
 
     try:
@@ -96,7 +92,7 @@ def main() -> None:
         )
 
         # ====================================================
-        # VALIDAÇÃO
+        # VALIDAÇÃO DA BASE
         # ====================================================
 
         print()
@@ -138,7 +134,7 @@ def main() -> None:
                 f"A base possui "
                 f"{int(errors)} erro(s) "
                 "de validação. "
-                "A análise de granularidade "
+                "A engenharia de atributos "
                 "não será executada."
             )
 
@@ -160,188 +156,181 @@ def main() -> None:
         )
 
         # ====================================================
-        # ANÁLISE DAS GRANULARIDADES
+        # ENGENHARIA DE ATRIBUTOS
         # ====================================================
 
         print()
         print(
-            "Analisando granularidades..."
+            "Criando atributos para "
+            "categoria + feira..."
         )
 
         analyses = (
-            run_granularity_analysis(
+            run_feature_engineering(
                 dataframe
             )
         )
 
         summary = analyses[
-            "resumo_granularidades"
-        ]
-
-        columns = [
-            "nome_granularidade",
-            "quantidade_series",
-            "minimo_observacoes_por_serie",
-            "mediana_observacoes_por_serie",
-            "media_observacoes_por_serie",
-            "maximo_observacoes_por_serie",
-            "percentual_series_com_12_ou_mais",
-        ]
-
-        print()
-        print("=" * 70)
-        print(
-            "COMPARAÇÃO DAS GRANULARIDADES"
-        )
-        print("=" * 70)
-        print()
-
-        print(
-            summary[
-                columns
-            ].to_string(
-                index=False
-            )
-        )
-
-        print()
-        print(
-            "A referência de 12 observações "
-            "é apenas um indicador exploratório."
-        )
-
-        print(
-            "Ela não comprova que uma série "
-            "seja suficiente para treinar ou "
-            "validar qualquer modelo."
-        )
-
-        # ====================================================
-        # DECISÃO DA GRANULARIDADE
-        # ====================================================
-
-        decision = analyses[
-            "decisao_granularidade"
+            "resumo_engenharia_atributos"
         ].iloc[0]
 
+        # ====================================================
+        # RESUMO
+        # ====================================================
+
         print()
         print("=" * 70)
         print(
-            "GRANULARIDADE ESCOLHIDA"
+            "RESUMO DA ENGENHARIA DE ATRIBUTOS"
         )
         print("=" * 70)
         print()
 
         print(
-            "Granularidade: "
-            f"{decision['nome_granularidade']}"
+            "Registros originais do MySQL: "
+            f"{summary[
+                'registros_origem_mysql'
+            ]}"
         )
 
         print(
-            "Unidade de cada série: "
-            f"{decision['unidade_da_serie']}"
-        )
-
-        print(
-            "Variável-alvo: "
-            f"{decision['variavel_alvo']}"
+            "Linhas agregadas em categoria + feira: "
+            f"{summary[
+                'linhas_categoria_feira'
+            ]}"
         )
 
         print(
             "Quantidade de séries: "
-            f"{decision['quantidade_series']}"
-        )
-
-        print(
-            "Total de observações: "
-            f"{decision['total_observacoes']}"
-        )
-
-        print(
-            "Mediana de observações por série: "
-            f"{decision[
-                'observacoes_mediana_por_serie'
+            f"{summary[
+                'quantidade_series'
             ]}"
         )
 
         print(
-            "Coeficiente de variação mediano: "
-            f"{decision[
-                'coeficiente_variacao_mediano'
+            "Janela histórica máxima: "
+            f"{summary[
+                'janela_historica_maxima'
             ]}"
         )
 
-        print()
         print(
-            "Justificativa:"
+            "Linhas removidas pela criação "
+            "dos atributos: "
+            f"{summary[
+                'linhas_removidas_por_historico'
+            ]}"
         )
 
         print(
-            decision[
-                "justificativa"
-            ]
-        )
-
-        print()
-        print(
-            "Estratégia de modelagem:"
+            "Linhas disponíveis para modelagem: "
+            f"{summary[
+                'linhas_dataset_modelagem'
+            ]}"
         )
 
         print(
-            decision[
-                "estrategia_de_modelagem"
-            ]
-        )
-
-        print()
-        print(
-            "Estratégia para os produtos:"
+            "Percentual de dados mantidos: "
+            f"{summary[
+                'percentual_dados_mantidos'
+            ]:.2f}%"
         )
 
         print(
-            decision[
-                "estrategia_para_produtos"
-            ]
+            "Observações de modelagem por série: "
+            f"{summary[
+                'observacoes_minimas_modelagem_por_serie'
+            ]}"
+            " a "
+            f"{summary[
+                'observacoes_maximas_modelagem_por_serie'
+            ]}"
+        )
+
+        print(
+            "Itens possivelmente censurados: "
+            f"{summary[
+                'itens_possivelmente_censurados'
+            ]}"
+        )
+
+        print(
+            "Percentual de itens possivelmente "
+            "censurados: "
+            f"{summary[
+                'percentual_itens_possivelmente_censurados'
+            ]:.2f}%"
+        )
+
+        print(
+            "Linhas categoria + feira com algum "
+            "item censurado: "
+            f"{summary[
+                'linhas_com_algum_item_possivelmente_censurado'
+            ]}"
         )
 
         # ====================================================
-        # SALVAR TABELAS
+        # VALIDAÇÃO DOS ATRIBUTOS
+        # ====================================================
+
+        feature_validation = analyses[
+            "validacao_engenharia_atributos"
+        ]
+
+        print()
+        print("=" * 70)
+        print(
+            "VALIDAÇÃO DOS ATRIBUTOS"
+        )
+        print("=" * 70)
+        print()
+
+        print(
+            feature_validation.to_string(
+                index=False
+            )
+        )
+
+        # ====================================================
+        # SALVAR RESULTADOS
         # ====================================================
 
         print()
         print(
-            "Salvando tabelas..."
+            "Salvando datasets e relatórios..."
         )
 
         table_files = (
-            save_granularity_tables(
+            save_feature_engineering_outputs(
                 analyses
             )
         )
 
         print(
             f"{len(table_files)} "
-            "tabelas geradas."
+            "arquivos CSV gerados."
         )
 
         # ====================================================
-        # GERAR GRÁFICOS
+        # GRÁFICO
         # ====================================================
 
         print()
         print(
-            "Gerando gráficos..."
+            "Gerando gráfico..."
         )
 
         figure_files = (
-            generate_granularity_plots(
+            generate_feature_engineering_plots(
                 analyses
             )
         )
 
         print(
             f"{len(figure_files)} "
-            "gráficos gerados."
+            "gráfico(s) gerado(s)."
         )
 
         # ====================================================
@@ -357,7 +346,7 @@ def main() -> None:
         print()
 
         print(
-            "Tabelas:"
+            "CSVs:"
         )
 
         for path in table_files:
@@ -380,21 +369,33 @@ def main() -> None:
         # ====================================================
 
         print()
+        print("=" * 70)
+        print(
+            "EXECUTADA COM SUCESSO"
+        )
+        print("=" * 70)
+        print()
 
         print(
-            "Granularidade definida: "
-            f"{decision['nome_granularidade']}"
+            "Granularidade utilizada: "
+            "Categoria + feira"
         )
 
         print(
-            "A decisão foi registrada em "
-            "decisao_granularidade.csv."
+            "Lags criados: "
+            "1, 2 e 3 ocorrências anteriores."
         )
 
         print(
-            "Nenhum modelo de previsão "
-            "foi treinado nesta fase."
+            "Médias móveis criadas: "
+            "2, 3 e 4 ocorrências anteriores."
         )
+
+        print(
+            "Nenhum atributo histórico utiliza "
+            "a demanda da própria linha."
+        )
+
 
     except Exception as exc:
         print()
