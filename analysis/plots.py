@@ -703,3 +703,164 @@ def generate_all_plots(
     ]
 
     return generated_files
+
+def plot_observations_by_granularity(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """
+    Compara a quantidade de observações por série.
+    """
+
+    profile = analyses[
+        "perfil_series_granularidade"
+    ].copy()
+
+    summary = analyses[
+        "resumo_granularidades"
+    ]
+
+    order = summary[
+        "granularidade"
+    ].tolist()
+
+    labels = summary[
+        "nome_granularidade"
+    ].tolist()
+
+    values = [
+        profile.loc[
+            profile["granularidade"] == granularity,
+            "quantidade_observacoes",
+        ].tolist()
+        for granularity in order
+    ]
+
+    plt.figure(
+        figsize=(11, 6)
+    )
+
+    plt.boxplot(
+        values,
+        tick_labels=labels,
+        showmeans=True,
+    )
+
+    plt.axhline(
+        12,
+        color="red",
+        linestyle="--",
+        label="Referência exploratória: 12",
+    )
+
+    plt.title(
+        "Observações temporais por série e granularidade"
+    )
+
+    plt.xlabel(
+        "Granularidade"
+    )
+
+    plt.ylabel(
+        "Quantidade de observações por série"
+    )
+
+    plt.xticks(
+        rotation=15
+    )
+
+    plt.grid(
+        axis="y",
+        alpha=0.3,
+    )
+
+    plt.legend()
+
+    return _save_figure(
+        "12_observacoes_por_granularidade.png"
+    )
+
+
+def plot_series_with_minimum_history(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """
+    Mostra o percentual de séries com pelo menos
+    12 observações.
+    """
+
+    data = analyses[
+        "resumo_granularidades"
+    ].copy()
+
+    plt.figure(
+        figsize=(10, 6)
+    )
+
+    bars = plt.bar(
+        data["nome_granularidade"],
+        data[
+            "percentual_series_com_12_ou_mais"
+        ],
+    )
+
+    for bar, value in zip(
+        bars,
+        data[
+            "percentual_series_com_12_ou_mais"
+        ],
+    ):
+        plt.text(
+            bar.get_x()
+            + bar.get_width() / 2,
+            bar.get_height() + 1,
+            f"{value:.1f}%",
+            ha="center",
+        )
+
+    plt.title(
+        "Séries com pelo menos 12 observações"
+    )
+
+    plt.xlabel(
+        "Granularidade"
+    )
+
+    plt.ylabel(
+        "Percentual de séries (%)"
+    )
+
+    plt.ylim(
+        0,
+        110,
+    )
+
+    plt.xticks(
+        rotation=15
+    )
+
+    plt.grid(
+        axis="y",
+        alpha=0.3,
+    )
+
+    return _save_figure(
+        "13_series_com_minimo_historico.png"
+    )
+
+
+def generate_granularity_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """
+    Gera os gráficos da Fase 5.
+    """
+
+    return [
+        plot_observations_by_granularity(
+            analyses
+        ),
+
+        plot_series_with_minimum_history(
+            analyses
+        ),
+    ]

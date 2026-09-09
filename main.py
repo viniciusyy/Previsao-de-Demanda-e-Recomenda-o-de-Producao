@@ -4,7 +4,7 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-    Análise Exploratória dos Dados.
+Definição da granularidade da previsão.
 
 Fluxo:
 
@@ -14,21 +14,21 @@ Carregamento
     ↓
 Validação
     ↓
-Análise exploratória
+Comparação das granularidades
     ↓
-Tabelas
+Escolha da granularidade
     ↓
-Gráficos
+Tabelas e gráficos
 
 Nenhum modelo de previsão é treinado nesta fase.
 """
 
-from analysis.exploratory import (
-    run_exploratory_analysis,
-    save_exploratory_tables,
+from analysis.granularity import (
+    run_granularity_analysis,
+    save_granularity_tables,
 )
 from analysis.plots import (
-    generate_all_plots,
+    generate_granularity_plots,
 )
 from database.connection import (
     test_connection,
@@ -44,7 +44,7 @@ from preprocessing.validation import (
 
 def main() -> None:
     """
-    Executa a Fase 4 do projeto.
+    Executa a Fase 5 do projeto.
     """
 
     print("=" * 70)
@@ -54,7 +54,7 @@ def main() -> None:
 
     print()
     print(
-        "Análise Exploratória dos Dados"
+        "DEFINIÇÃO DA GRANULARIDADE"
     )
     print()
 
@@ -69,7 +69,8 @@ def main() -> None:
 
         if test_connection():
             print(
-                "Conexão com MySQL realizada com sucesso."
+                "Conexão com MySQL realizada "
+                "com sucesso."
             )
 
         # ====================================================
@@ -81,14 +82,17 @@ def main() -> None:
             "Carregando dados históricos..."
         )
 
-        dataframe = load_historical_data()
+        dataframe = (
+            load_historical_data()
+        )
 
         print(
             "Dados carregados com sucesso."
         )
 
         print(
-            f"Registros carregados: {len(dataframe)}"
+            f"Registros carregados: "
+            f"{len(dataframe)}"
         )
 
         # ====================================================
@@ -106,28 +110,36 @@ def main() -> None:
 
         (
             validation_summary,
-            validation_details,
+            _validation_details,
             censored_data,
         ) = validate_historical_data(
             dataframe=dataframe,
-            referential_issues=referential_issues,
+            referential_issues=(
+                referential_issues
+            ),
         )
 
         errors = validation_summary.loc[
-            validation_summary["nivel"] == "ERRO",
+            validation_summary[
+                "nivel"
+            ] == "ERRO",
             "quantidade",
         ].sum()
 
         warnings = validation_summary.loc[
-            validation_summary["nivel"] == "ALERTA",
+            validation_summary[
+                "nivel"
+            ] == "ALERTA",
             "quantidade",
         ].sum()
 
         if errors > 0:
             raise ValueError(
-                f"A base possui {int(errors)} erro(s) "
+                f"A base possui "
+                f"{int(errors)} erro(s) "
                 "de validação. "
-                "A análise exploratória não será executada."
+                "A análise de granularidade "
+                "não será executada."
             )
 
         print(
@@ -136,316 +148,160 @@ def main() -> None:
 
         if warnings > 0:
             print(
-                f"Atenção: existem {int(warnings)} "
+                f"Atenção: existem "
+                f"{int(warnings)} "
                 "alerta(s) na base."
             )
 
         print(
-            f"Possíveis casos de demanda censurada: "
+            "Possíveis casos de demanda "
+            "censurada: "
             f"{len(censored_data)}"
         )
 
         # ====================================================
-        # ANÁLISE EXPLORATÓRIA
+        # ANÁLISE DAS GRANULARIDADES
         # ====================================================
 
         print()
         print(
-            "Executando análise exploratória..."
+            "Analisando granularidades..."
         )
 
         analyses = (
-            run_exploratory_analysis(
+            run_granularity_analysis(
                 dataframe
             )
         )
 
+        summary = analyses[
+            "resumo_granularidades"
+        ]
+
+        columns = [
+            "nome_granularidade",
+            "quantidade_series",
+            "minimo_observacoes_por_serie",
+            "mediana_observacoes_por_serie",
+            "media_observacoes_por_serie",
+            "maximo_observacoes_por_serie",
+            "percentual_series_com_12_ou_mais",
+        ]
+
+        print()
+        print("=" * 70)
         print(
-            "Análise exploratória concluída."
+            "COMPARAÇÃO DAS GRANULARIDADES"
+        )
+        print("=" * 70)
+        print()
+
+        print(
+            summary[
+                columns
+            ].to_string(
+                index=False
+            )
+        )
+
+        print()
+        print(
+            "A referência de 12 observações "
+            "é apenas um indicador exploratório."
+        )
+
+        print(
+            "Ela não comprova que uma série "
+            "seja suficiente para treinar ou "
+            "validar qualquer modelo."
         )
 
         # ====================================================
-        # RESUMO GERAL
+        # DECISÃO DA GRANULARIDADE
         # ====================================================
 
-        general_summary = analyses[
-            "resumo_geral"
+        decision = analyses[
+            "decisao_granularidade"
         ].iloc[0]
 
         print()
         print("=" * 70)
-        print("RESUMO GERAL DA BASE")
+        print(
+            "GRANULARIDADE ESCOLHIDA"
+        )
         print("=" * 70)
         print()
 
         print(
-            f"Quantidade de registros: "
-            f"{general_summary['quantidade_registros']}"
+            "Granularidade: "
+            f"{decision['nome_granularidade']}"
         )
 
         print(
-            f"Quantidade de operações: "
-            f"{general_summary['quantidade_operacoes']}"
+            "Unidade de cada série: "
+            f"{decision['unidade_da_serie']}"
         )
 
         print(
-            f"Quantidade de feiras: "
-            f"{general_summary['quantidade_feiras']}"
+            "Variável-alvo: "
+            f"{decision['variavel_alvo']}"
         )
 
         print(
-            f"Quantidade de produtos: "
-            f"{general_summary['quantidade_produtos']}"
+            "Quantidade de séries: "
+            f"{decision['quantidade_series']}"
         )
 
         print(
-            f"Quantidade de categorias: "
-            f"{general_summary['quantidade_categorias']}"
-        )
-
-        print()
-
-        print(
-            f"Primeira data: "
-            f"{general_summary['primeira_data_venda']}"
+            "Total de observações: "
+            f"{decision['total_observacoes']}"
         )
 
         print(
-            f"Última data: "
-            f"{general_summary['ultima_data_venda']}"
+            "Mediana de observações por série: "
+            f"{decision[
+                'observacoes_mediana_por_serie'
+            ]}"
         )
 
         print(
-            f"Período calendário: "
-            f"{general_summary['periodo_calendario_dias']} dias"
-        )
-
-        # ====================================================
-        # PRODUÇÃO E VENDAS
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("PRODUÇÃO E VENDAS")
-        print("=" * 70)
-        print()
-
-        print(
-            f"Total produzido: "
-            f"{general_summary['total_produzido']}"
-        )
-
-        print(
-            f"Total vendido: "
-            f"{general_summary['total_vendido']}"
-        )
-
-        print(
-            f"Total de sobra: "
-            f"{general_summary['total_sobra']}"
-        )
-
-        print(
-            f"Taxa geral de sobra: "
-            f"{general_summary['taxa_sobra_percentual']:.2f}%"
-        )
-
-        # ====================================================
-        # DEMANDA CENSURADA
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("POSSÍVEL DEMANDA CENSURADA")
-        print("=" * 70)
-        print()
-
-        print(
-            "Registros identificados: "
-            f"{general_summary['possivel_demanda_censurada']}"
-        )
-
-        print(
-            "Percentual sobre os registros: "
-            f"{general_summary[
-                'percentual_possivel_demanda_censurada'
-            ]:.2f}%"
+            "Coeficiente de variação mediano: "
+            f"{decision[
+                'coeficiente_variacao_mediano'
+            ]}"
         )
 
         print()
         print(
-            "Esse indicador é calculado por produto dentro "
-            "de cada operação."
+            "Justificativa:"
         )
 
         print(
-            "Ele não significa que a feira inteira ficou "
-            "sem produtos."
-        )
-
-        print(
-            "Também não permite calcular a quantidade "
-            "de demanda perdida."
-        )
-
-        # ====================================================
-        # FEIRAS
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("ANÁLISE POR FEIRA")
-        print("=" * 70)
-        print()
-
-        fair_columns = [
-            "feira",
-            "quantidade_operacoes",
-            "total_produzido",
-            "total_vendido",
-            "total_sobra",
-            "taxa_sobra_percentual",
-            "media_vendida_por_operacao",
-            "media_sobra_por_operacao",
-        ]
-
-        print(
-            analyses[
-                "analise_por_feira"
-            ][fair_columns].to_string(
-                index=False
-            )
-        )
-
-        # ====================================================
-        # CATEGORIAS
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("ANÁLISE POR CATEGORIA")
-        print("=" * 70)
-        print()
-
-        category_columns = [
-            "categoria",
-            "total_produzido",
-            "total_vendido",
-            "total_sobra",
-            "taxa_sobra_percentual",
-        ]
-
-        print(
-            analyses[
-                "analise_por_categoria"
-            ][category_columns].to_string(
-                index=False
-            )
-        )
-
-        # ====================================================
-        # PRODUTOS
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("10 PRODUTOS MAIS VENDIDOS")
-        print("=" * 70)
-        print()
-
-        product_columns = [
-            "id_produto",
-            "produto",
-            "categoria",
-            "total_vendido",
-            "total_sobra",
-        ]
-
-        print(
-            analyses[
-                "analise_por_produto"
-            ][product_columns]
-            .head(10)
-            .to_string(
-                index=False
-            )
-        )
-
-        # ====================================================
-        # CLIMA
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("ANÁLISE DESCRITIVA POR CLIMA")
-        print("=" * 70)
-        print()
-
-        climate_columns = [
-            "clima",
-            "quantidade_operacoes",
-            "total_vendido",
-            "media_vendida_por_operacao",
-            "mediana_vendida_por_operacao",
-            "media_sobra_por_operacao",
-        ]
-
-        print(
-            analyses[
-                "analise_por_clima"
-            ][climate_columns].to_string(
-                index=False
-            )
+            decision[
+                "justificativa"
+            ]
         )
 
         print()
         print(
-            "A comparação principal utiliza média por operação, "
-            "pois cada clima possui quantidade diferente "
-            "de observações."
+            "Estratégia de modelagem:"
         )
 
         print(
-            "Diferenças observadas entre os climas "
-            "não demonstram causalidade."
-        )
-
-        # ====================================================
-        # FERIADOS
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print("FERIADOS × DIAS NORMAIS")
-        print("=" * 70)
-        print()
-
-        holiday_columns = [
-            "tipo_dia",
-            "quantidade_operacoes",
-            "total_vendido",
-            "media_vendida_por_operacao",
-            "mediana_vendida_por_operacao",
-            "media_sobra_por_operacao",
-        ]
-
-        print(
-            analyses[
-                "analise_feriados"
-            ][holiday_columns].to_string(
-                index=False
-            )
+            decision[
+                "estrategia_de_modelagem"
+            ]
         )
 
         print()
         print(
-            "A comparação considera o total vendido "
-            "em cada operação."
+            "Estratégia para os produtos:"
         )
 
         print(
-            "Essa análise também é descritiva "
-            "e não demonstra causalidade."
+            decision[
+                "estrategia_para_produtos"
+            ]
         )
 
         # ====================================================
@@ -458,17 +314,18 @@ def main() -> None:
         )
 
         table_files = (
-            save_exploratory_tables(
+            save_granularity_tables(
                 analyses
             )
         )
 
         print(
-            f"{len(table_files)} tabelas geradas."
+            f"{len(table_files)} "
+            "tabelas geradas."
         )
 
         # ====================================================
-        # GRÁFICOS
+        # GERAR GRÁFICOS
         # ====================================================
 
         print()
@@ -477,14 +334,14 @@ def main() -> None:
         )
 
         figure_files = (
-            generate_all_plots(
-                dataframe=dataframe,
-                analyses=analyses,
+            generate_granularity_plots(
+                analyses
             )
         )
 
         print(
-            f"{len(figure_files)} gráficos gerados."
+            f"{len(figure_files)} "
+            "gráficos gerados."
         )
 
         # ====================================================
@@ -493,11 +350,15 @@ def main() -> None:
 
         print()
         print("=" * 70)
-        print("ARQUIVOS GERADOS")
+        print(
+            "ARQUIVOS GERADOS"
+        )
         print("=" * 70)
         print()
 
-        print("Tabelas:")
+        print(
+            "Tabelas:"
+        )
 
         for path in table_files:
             print(
@@ -505,29 +366,48 @@ def main() -> None:
             )
 
         print()
-        print("Gráficos:")
+        print(
+            "Gráficos:"
+        )
 
         for path in figure_files:
             print(
                 f"- {path.name}"
             )
 
-
+        # ====================================================
+        # FINALIZAÇÃO
+        # ====================================================
 
         print()
+
         print(
-            "A análise desta fase é descritiva."
+            "Granularidade definida: "
+            f"{decision['nome_granularidade']}"
         )
 
+        print(
+            "A decisão foi registrada em "
+            "decisao_granularidade.csv."
+        )
+
+        print(
+            "Nenhum modelo de previsão "
+            "foi treinado nesta fase."
+        )
 
     except Exception as exc:
         print()
         print("=" * 70)
-        print("ERRO")
+        print(
+            "ERRO"
+        )
         print("=" * 70)
         print()
 
-        print(exc)
+        print(
+            exc
+        )
 
 
 if __name__ == "__main__":
