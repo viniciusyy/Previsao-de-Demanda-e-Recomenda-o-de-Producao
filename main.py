@@ -4,7 +4,7 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Engenharia de atributos.
+Validação temporal.
 
 Fluxo:
 
@@ -25,18 +25,19 @@ Dataset de modelagem
 """
 
 from analysis.plots import (
-    generate_feature_engineering_plots,
+    generate_temporal_validation_plots,
 )
-from database.connection import (
-    test_connection,
-)
+from database.connection import test_connection
 from database.repository import (
     load_historical_data,
     load_referential_integrity_issues,
 )
+from evaluation.temporal_validation import (
+    run_temporal_validation,
+    save_temporal_validation_outputs,
+)
 from preprocessing.features import (
     run_feature_engineering,
-    save_feature_engineering_outputs,
 )
 from preprocessing.validation import (
     validate_historical_data,
@@ -44,61 +45,34 @@ from preprocessing.validation import (
 
 
 def main() -> None:
- 
-
+    
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
     print("E RECOMENDAÇÃO DE PRODUÇÃO")
     print("=" * 70)
-
-
     print()
 
-    try:
-        # ====================================================
-        # CONEXÃO
-        # ====================================================
 
-        print(
-            "Conectando ao banco de dados..."
-        )
+    try:
+        print("Conectando ao banco de dados...")
 
         if test_connection():
             print(
-                "Conexão com MySQL realizada "
-                "com sucesso."
+                "Conexão com MySQL realizada com sucesso."
             )
 
-        # ====================================================
-        # CARREGAMENTO
-        # ====================================================
+        print()
+        print("Carregando dados históricos...")
+
+        dataframe = load_historical_data()
+
+        print("Dados carregados com sucesso.")
+        print(
+            f"Registros carregados: {len(dataframe)}"
+        )
 
         print()
-        print(
-            "Carregando dados históricos..."
-        )
-
-        dataframe = (
-            load_historical_data()
-        )
-
-        print(
-            "Dados carregados com sucesso."
-        )
-
-        print(
-            f"Registros carregados: "
-            f"{len(dataframe)}"
-        )
-
-        # ====================================================
-        # VALIDAÇÃO DA BASE
-        # ====================================================
-
-        print()
-        print(
-            "Verificando qualidade dos dados..."
-        )
+        print("Verificando qualidade dos dados...")
 
         referential_issues = (
             load_referential_integrity_issues()
@@ -110,305 +84,197 @@ def main() -> None:
             censored_data,
         ) = validate_historical_data(
             dataframe=dataframe,
-            referential_issues=(
-                referential_issues
-            ),
+            referential_issues=referential_issues,
         )
 
         errors = validation_summary.loc[
-            validation_summary[
-                "nivel"
-            ] == "ERRO",
+            validation_summary["nivel"] == "ERRO",
             "quantidade",
         ].sum()
 
         warnings = validation_summary.loc[
-            validation_summary[
-                "nivel"
-            ] == "ALERTA",
+            validation_summary["nivel"] == "ALERTA",
             "quantidade",
         ].sum()
 
         if errors > 0:
             raise ValueError(
-                f"A base possui "
-                f"{int(errors)} erro(s) "
-                "de validação. "
-                "A engenharia de atributos "
-                "não será executada."
+                f"A base possui {int(errors)} "
+                "erro(s) de validação. "
+                "A validação temporal não será executada."
             )
 
-        print(
-            "Nenhum erro crítico encontrado."
-        )
+        print("Nenhum erro crítico encontrado.")
 
         if warnings > 0:
             print(
-                f"Atenção: existem "
-                f"{int(warnings)} "
-                "alerta(s) na base."
+                "Atenção: existem "
+                f"{int(warnings)} alerta(s) na base."
             )
 
         print(
-            "Possíveis casos de demanda "
-            "censurada: "
+            "Possíveis casos de demanda censurada: "
             f"{len(censored_data)}"
         )
 
-        # ====================================================
-        # ENGENHARIA DE ATRIBUTOS
-        # ====================================================
+        print()
+        print(
+            "Recriando o dataset de modelagem..."
+        )
+
+        feature_analyses = (
+            run_feature_engineering(dataframe)
+        )
+
+        modeling_data = feature_analyses[
+            "dataset_modelagem_categoria_feira"
+        ]
+
+        print(
+            "Linhas disponíveis para a "
+            "validação temporal: "
+            f"{len(modeling_data)}"
+        )
+
+        print(
+            "Séries preservadas: "
+            f"{modeling_data['serie'].nunique()}"
+        )
 
         print()
         print(
-            "Criando atributos para "
-            "categoria + feira..."
+            "Criando folds temporais walk-forward..."
         )
 
-        analyses = (
-            run_feature_engineering(
-                dataframe
-            )
+        analyses = run_temporal_validation(
+            modeling_data
         )
 
-        summary = analyses[
-            "resumo_engenharia_atributos"
-        ].iloc[0]
+        fold_summary = analyses[
+            "resumo_folds_temporais"
+        ]
 
-        # ====================================================
-        # RESUMO
-        # ====================================================
-
-        print()
-        print("=" * 70)
-        print(
-            "RESUMO DA ENGENHARIA DE ATRIBUTOS"
-        )
-        print("=" * 70)
-        print()
-
-        print(
-            "Registros originais do MySQL: "
-            f"{summary[
-                'registros_origem_mysql'
-            ]}"
-        )
-
-        print(
-            "Linhas agregadas em categoria + feira: "
-            f"{summary[
-                'linhas_categoria_feira'
-            ]}"
-        )
-
-        print(
-            "Quantidade de séries: "
-            f"{summary[
-                'quantidade_series'
-            ]}"
-        )
-
-        print(
-            "Janela histórica máxima: "
-            f"{summary[
-                'janela_historica_maxima'
-            ]}"
-        )
-
-        print(
-            "Linhas removidas pela criação "
-            "dos atributos: "
-            f"{summary[
-                'linhas_removidas_por_historico'
-            ]}"
-        )
-
-        print(
-            "Linhas disponíveis para modelagem: "
-            f"{summary[
-                'linhas_dataset_modelagem'
-            ]}"
-        )
-
-        print(
-            "Percentual de dados mantidos: "
-            f"{summary[
-                'percentual_dados_mantidos'
-            ]:.2f}%"
-        )
-
-        print(
-            "Observações de modelagem por série: "
-            f"{summary[
-                'observacoes_minimas_modelagem_por_serie'
-            ]}"
-            " a "
-            f"{summary[
-                'observacoes_maximas_modelagem_por_serie'
-            ]}"
-        )
-
-        print(
-            "Itens possivelmente censurados: "
-            f"{summary[
-                'itens_possivelmente_censurados'
-            ]}"
-        )
-
-        print(
-            "Percentual de itens possivelmente "
-            "censurados: "
-            f"{summary[
-                'percentual_itens_possivelmente_censurados'
-            ]:.2f}%"
-        )
-
-        print(
-            "Linhas categoria + feira com algum "
-            "item censurado: "
-            f"{summary[
-                'linhas_com_algum_item_possivelmente_censurado'
-            ]}"
-        )
-
-        # ====================================================
-        # VALIDAÇÃO DOS ATRIBUTOS
-        # ====================================================
-
-        feature_validation = analyses[
-            "validacao_engenharia_atributos"
+        display_columns = [
+            "fold",
+            "observacoes_treino_por_serie",
+            "posicao_teste_por_serie",
+            "linhas_treino",
+            "linhas_teste",
+            "series_teste",
         ]
 
         print()
         print("=" * 70)
-        print(
-            "VALIDAÇÃO DOS ATRIBUTOS"
-        )
+        print("RESUMO DOS FOLDS TEMPORAIS")
         print("=" * 70)
         print()
 
         print(
-            feature_validation.to_string(
+            fold_summary[
+                display_columns
+            ].to_string(index=False)
+        )
+
+        temporal_validation = analyses[
+            "validacao_folds_temporais"
+        ]
+
+        print()
+        print("=" * 70)
+        print("VALIDAÇÃO DOS FOLDS")
+        print("=" * 70)
+        print()
+
+        print(
+            temporal_validation.to_string(
                 index=False
             )
         )
 
-        # ====================================================
-        # SALVAR RESULTADOS
-        # ====================================================
-
         print()
         print(
-            "Salvando datasets e relatórios..."
+            "Salvando configurações e folds..."
         )
 
         table_files = (
-            save_feature_engineering_outputs(
+            save_temporal_validation_outputs(
                 analyses
             )
         )
 
         print(
-            f"{len(table_files)} "
-            "arquivos CSV gerados."
+            f"{len(table_files)} arquivos CSV gerados."
         )
-
-        # ====================================================
-        # GRÁFICO
-        # ====================================================
 
         print()
-        print(
-            "Gerando gráfico..."
-        )
+        print("Gerando gráfico...")
 
         figure_files = (
-            generate_feature_engineering_plots(
+            generate_temporal_validation_plots(
                 analyses
             )
         )
 
         print(
-            f"{len(figure_files)} "
-            "gráfico(s) gerado(s)."
+            f"{len(figure_files)} gráfico(s) gerado(s)."
         )
-
-        # ====================================================
-        # ARQUIVOS GERADOS
-        # ====================================================
 
         print()
         print("=" * 70)
-        print(
-            "ARQUIVOS GERADOS"
-        )
+        print("ARQUIVOS GERADOS")
         print("=" * 70)
         print()
 
-        print(
-            "CSVs:"
-        )
+        print("CSVs:")
 
         for path in table_files:
-            print(
-                f"- {path.name}"
-            )
+            print(f"- {path.name}")
 
         print()
-        print(
-            "Gráficos:"
-        )
+        print("Gráficos:")
 
         for path in figure_files:
-            print(
-                f"- {path.name}"
-            )
-
-        # ====================================================
-        # FINALIZAÇÃO
-        # ====================================================
+            print(f"- {path.name}")
 
         print()
         print("=" * 70)
-        print(
-            "EXECUTADA COM SUCESSO"
-        )
+        print("EXECUTADA COM SUCESSO")
         print("=" * 70)
         print()
 
         print(
-            "Granularidade utilizada: "
-            "Categoria + feira"
+            "Estratégia: walk-forward "
+            "com janela expansiva."
+        )
+        print("Quantidade de folds: 5.")
+        print(
+            "Horizonte de teste: uma ocorrência "
+            "por série e fold."
+        )
+        print("Embaralhamento dos dados: não.")
+
+        total_test_predictions = int(
+            fold_summary["linhas_teste"].sum()
         )
 
         print(
-            "Lags criados: "
-            "1, 2 e 3 ocorrências anteriores."
+            "Total de previsões de teste: "
+            f"{total_test_predictions}."
         )
 
         print(
-            "Médias móveis criadas: "
-            "2, 3 e 4 ocorrências anteriores."
-        )
-
-        print(
-            "Nenhum atributo histórico utiliza "
-            "a demanda da própria linha."
+            "O pré-processamento dos modelos deverá "
+            "ser ajustado somente no treino de cada fold."
         )
 
 
     except Exception as exc:
         print()
         print("=" * 70)
-        print(
-            "ERRO"
-        )
+        print("ERRO")
         print("=" * 70)
         print()
-
-        print(
-            exc
-        )
+        print(exc)
 
 
 if __name__ == "__main__":

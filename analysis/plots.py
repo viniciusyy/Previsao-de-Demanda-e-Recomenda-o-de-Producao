@@ -957,3 +957,142 @@ def generate_feature_engineering_plots(
             analyses
         ),
     ]
+
+def plot_walk_forward_validation(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Representa treino, teste e futuro em cada fold temporal."""
+
+    summary = analyses[
+        "resumo_folds_temporais"
+    ].copy()
+
+    if summary.empty:
+        raise ValueError(
+            "O resumo dos folds temporais está vazio."
+        )
+
+    maximum_position = int(
+        summary["posicao_teste_por_serie"].max()
+    )
+
+    plt.figure(figsize=(11, 6))
+
+    for index, row in summary.iterrows():
+        fold = int(row["fold"])
+
+        train_size = int(
+            row["observacoes_treino_por_serie"]
+        )
+
+        test_position = int(
+            row["posicao_teste_por_serie"]
+        )
+
+        future_size = (
+            maximum_position - test_position
+        )
+
+        show_legend = (
+            index == summary.index[0]
+        )
+
+        plt.barh(
+            fold,
+            train_size,
+            left=0.5,
+            height=0.62,
+            color="#4C78A8",
+            edgecolor="white",
+            label=(
+                "Treino"
+                if show_legend
+                else None
+            ),
+        )
+
+        plt.barh(
+            fold,
+            1,
+            left=test_position - 0.5,
+            height=0.62,
+            color="#F58518",
+            edgecolor="white",
+            label=(
+                "Teste"
+                if show_legend
+                else None
+            ),
+        )
+
+        if future_size > 0:
+            plt.barh(
+                fold,
+                future_size,
+                left=test_position + 0.5,
+                height=0.62,
+                color="#D9D9D9",
+                edgecolor="white",
+                label=(
+                    "Ainda não utilizado"
+                    if show_legend
+                    else None
+                ),
+            )
+
+    plt.title(
+        "Validação temporal walk-forward "
+        "com janela expansiva"
+    )
+
+    plt.xlabel(
+        "Posição temporal dentro de cada série"
+    )
+
+    plt.ylabel("Fold")
+
+    plt.xticks(
+        range(1, maximum_position + 1)
+    )
+
+    plt.yticks(
+        summary["fold"].astype(int),
+        [
+            f"Fold {fold}"
+            for fold in summary["fold"]
+        ],
+    )
+
+    plt.xlim(
+        0.5,
+        maximum_position + 0.5,
+    )
+
+    plt.gca().invert_yaxis()
+
+    plt.grid(
+        axis="x",
+        alpha=0.25,
+    )
+
+    plt.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.13),
+        ncol=3,
+    )
+
+    return _save_figure(
+        "15_validacao_temporal_walk_forward.png"
+    )
+
+
+def generate_temporal_validation_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """Gera os gráficos da Fase 7."""
+
+    return [
+        plot_walk_forward_validation(
+            analyses
+        ),
+    ]
