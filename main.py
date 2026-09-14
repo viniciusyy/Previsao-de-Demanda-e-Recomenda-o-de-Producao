@@ -4,7 +4,7 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Validação temporal.
+Modelos de referência e avaliação
 
 Fluxo:
 
@@ -25,7 +25,7 @@ Dataset de modelagem
 """
 
 from analysis.plots import (
-    generate_temporal_validation_plots,
+    generate_baseline_plots,
 )
 from database.connection import test_connection
 from database.repository import (
@@ -34,7 +34,10 @@ from database.repository import (
 )
 from evaluation.temporal_validation import (
     run_temporal_validation,
-    save_temporal_validation_outputs,
+)
+from forecasting.baselines import (
+    run_baseline_evaluation,
+    save_baseline_outputs,
 )
 from preprocessing.features import (
     run_feature_engineering,
@@ -46,13 +49,13 @@ from preprocessing.validation import (
 
 def main() -> None:
     
+
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
     print("E RECOMENDAÇÃO DE PRODUÇÃO")
     print("=" * 70)
     print()
-
-
+ 
     try:
         print("Conectando ao banco de dados...")
 
@@ -101,7 +104,7 @@ def main() -> None:
             raise ValueError(
                 f"A base possui {int(errors)} "
                 "erro(s) de validação. "
-                "A validação temporal não será executada."
+                "Os baselines não serão executados."
             )
 
         print("Nenhum erro crítico encontrado.")
@@ -131,8 +134,7 @@ def main() -> None:
         ]
 
         print(
-            "Linhas disponíveis para a "
-            "validação temporal: "
+            "Linhas disponíveis para modelagem: "
             f"{len(modeling_data)}"
         )
 
@@ -143,63 +145,135 @@ def main() -> None:
 
         print()
         print(
-            "Criando folds temporais walk-forward..."
+            "Recriando os folds temporais..."
         )
 
-        analyses = run_temporal_validation(
-            modeling_data
+        temporal_analyses = (
+            run_temporal_validation(
+                modeling_data
+            )
         )
 
-        fold_summary = analyses[
-            "resumo_folds_temporais"
+        fold_details = temporal_analyses[
+            "folds_validacao_temporal"
         ]
 
-        display_columns = [
-            "fold",
-            "observacoes_treino_por_serie",
-            "posicao_teste_por_serie",
-            "linhas_treino",
-            "linhas_teste",
-            "series_teste",
+        print(
+            "Casos de teste disponíveis: "
+            f"{int((fold_details['conjunto'] == 'teste').sum())}"
+        )
+
+        print()
+        print(
+            "Executando modelos de referência..."
+        )
+
+        analyses = run_baseline_evaluation(
+            fold_details
+        )
+
+        validation = analyses[
+            "validacao_baselines"
         ]
 
         print()
         print("=" * 70)
-        print("RESUMO DOS FOLDS TEMPORAIS")
+        print("VALIDAÇÃO DOS BASELINES")
         print("=" * 70)
         print()
 
         print(
-            fold_summary[
-                display_columns
+            validation.to_string(index=False)
+        )
+
+        metrics = analyses[
+            "metricas_baselines_geral"
+        ]
+
+        metric_columns = [
+            "nome_modelo",
+            "quantidade_previsoes",
+            "quantidade_alvos_zero",
+            "mae",
+            "mse",
+            "rmse",
+            "mape",
+        ]
+
+        print()
+        print("=" * 70)
+        print("MÉTRICAS GERAIS DOS BASELINES")
+        print("=" * 70)
+        print()
+
+        print(
+            metrics[
+                metric_columns
             ].to_string(index=False)
         )
 
-        temporal_validation = analyses[
-            "validacao_folds_temporais"
+        ranking = analyses[
+            "ranking_baselines"
+        ]
+
+        ranking_columns = [
+            "posicao",
+            "nome_modelo",
+            "mae",
+            "rmse",
+            "mape",
         ]
 
         print()
         print("=" * 70)
-        print("VALIDAÇÃO DOS FOLDS")
+        print("RANKING DOS BASELINES")
         print("=" * 70)
         print()
 
         print(
-            temporal_validation.to_string(
-                index=False
-            )
+            ranking[
+                ranking_columns
+            ].to_string(index=False)
+        )
+
+        decision = analyses[
+            "decisao_baseline_referencia"
+        ].iloc[0]
+
+        print()
+        print("=" * 70)
+        print("BASELINE DE REFERÊNCIA")
+        print("=" * 70)
+        print()
+
+        print(
+            "Modelo: "
+            f"{decision['nome_modelo']}"
+        )
+
+        print(
+            f"MAE: {decision['mae']:.4f}"
+        )
+
+        print(
+            f"MSE: {decision['mse']:.4f}"
+        )
+
+        print(
+            f"RMSE: {decision['rmse']:.4f}"
+        )
+
+        print(
+            f"MAPE: {decision['mape']:.4f}%"
         )
 
         print()
         print(
-            "Salvando configurações e folds..."
+            "Salvando previsões e relatórios..."
         )
 
-        table_files = (
-            save_temporal_validation_outputs(
-                analyses
-            )
+        table_files = save_baseline_outputs(
+            analyses
         )
 
         print(
@@ -207,12 +281,10 @@ def main() -> None:
         )
 
         print()
-        print("Gerando gráfico...")
+        print("Gerando gráficos...")
 
-        figure_files = (
-            generate_temporal_validation_plots(
-                analyses
-            )
+        figure_files = generate_baseline_plots(
+            analyses
         )
 
         print(
@@ -238,35 +310,32 @@ def main() -> None:
 
         print()
         print("=" * 70)
-        print("EXECUTADA COM SUCESSO")
+        print("EXECUTADO COM SUCESSO")
         print("=" * 70)
         print()
 
         print(
-            "Estratégia: walk-forward "
-            "com janela expansiva."
-        )
-        print("Quantidade de folds: 5.")
-        print(
-            "Horizonte de teste: uma ocorrência "
-            "por série e fold."
-        )
-        print("Embaralhamento dos dados: não.")
-
-        total_test_predictions = int(
-            fold_summary["linhas_teste"].sum()
+            "Todos os baselines foram avaliados "
+            "nos mesmos 90 casos de teste."
         )
 
         print(
-            "Total de previsões de teste: "
-            f"{total_test_predictions}."
+            "Critério principal do ranking: MAE."
         )
 
         print(
-            "O pré-processamento dos modelos deverá "
-            "ser ajustado somente no treino de cada fold."
+            "Critérios de desempate: RMSE e MAPE."
         )
 
+        print(
+            "Baseline de referência: "
+            f"{decision['nome_modelo']}."
+        )
+
+        print(
+            "O baseline vencedor ainda não representa "
+            "o modelo final do sistema."
+        )
 
     except Exception as exc:
         print()

@@ -1096,3 +1096,200 @@ def generate_temporal_validation_plots(
             analyses
         ),
     ]
+
+def plot_baseline_error_comparison(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara MAE e RMSE dos baselines."""
+
+    ranking = analyses[
+        "ranking_baselines"
+    ].copy()
+
+    positions = list(
+        range(len(ranking))
+    )
+
+    bar_width = 0.36
+
+    mae_positions = [
+        position - bar_width / 2
+        for position in positions
+    ]
+
+    rmse_positions = [
+        position + bar_width / 2
+        for position in positions
+    ]
+
+    plt.figure(figsize=(11, 6))
+
+    mae_bars = plt.bar(
+        mae_positions,
+        ranking["mae"],
+        width=bar_width,
+        label="MAE",
+        color="#4C78A8",
+    )
+
+    rmse_bars = plt.bar(
+        rmse_positions,
+        ranking["rmse"],
+        width=bar_width,
+        label="RMSE",
+        color="#F58518",
+    )
+
+    maximum_value = max(
+        float(ranking["mae"].max()),
+        float(ranking["rmse"].max()),
+        1.0,
+    )
+
+    text_offset = maximum_value * 0.02
+
+    for bars in [mae_bars, rmse_bars]:
+        for bar in bars:
+            value = bar.get_height()
+
+            plt.text(
+                bar.get_x()
+                + bar.get_width() / 2,
+                value + text_offset,
+                f"{value:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+
+    plt.title(
+        "Comparação dos erros dos modelos de referência"
+    )
+
+    plt.xlabel("Modelo")
+    plt.ylabel("Erro em unidades de demanda")
+
+    plt.xticks(
+        positions,
+        ranking["nome_modelo"],
+        rotation=15,
+        ha="right",
+    )
+
+    plt.ylim(
+        0,
+        maximum_value * 1.22,
+    )
+
+    plt.grid(
+        axis="y",
+        alpha=0.3,
+    )
+
+    plt.legend()
+
+    return _save_figure(
+        "16_comparacao_mae_rmse_baselines.png"
+    )
+
+
+def plot_best_baseline_predictions(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara valores reais e previstos pelo melhor baseline."""
+
+    decision = analyses[
+        "decisao_baseline_referencia"
+    ].iloc[0]
+
+    best_model = decision[
+        "modelo_referencia"
+    ]
+
+    best_model_name = decision[
+        "nome_modelo"
+    ]
+
+    predictions = analyses[
+        "previsoes_baselines"
+    ]
+
+    data = predictions.loc[
+        predictions["modelo"] == best_model
+    ].copy()
+
+    minimum_value = min(
+        float(data["valor_real"].min()),
+        float(data["previsao"].min()),
+    )
+
+    maximum_value = max(
+        float(data["valor_real"].max()),
+        float(data["previsao"].max()),
+    )
+
+    margin = max(
+        (maximum_value - minimum_value) * 0.05,
+        1.0,
+    )
+
+    lower_limit = minimum_value - margin
+    upper_limit = maximum_value + margin
+
+    plt.figure(figsize=(8, 7))
+
+    plt.scatter(
+        data["valor_real"],
+        data["previsao"],
+        alpha=0.7,
+        color="#4C78A8",
+        edgecolors="white",
+    )
+
+    plt.plot(
+        [lower_limit, upper_limit],
+        [lower_limit, upper_limit],
+        linestyle="--",
+        color="#E45756",
+        label="Previsão perfeita",
+    )
+
+    plt.title(
+        f"Demanda observada versus previsão\n"
+        f"{best_model_name}"
+    )
+
+    plt.xlabel("Demanda observada")
+    plt.ylabel("Demanda prevista")
+
+    plt.xlim(
+        lower_limit,
+        upper_limit,
+    )
+
+    plt.ylim(
+        lower_limit,
+        upper_limit,
+    )
+
+    plt.grid(alpha=0.3)
+    plt.legend()
+
+    return _save_figure(
+        "17_real_vs_previsto_melhor_baseline.png"
+    )
+
+
+def generate_baseline_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """Gera os gráficos da Fase 8."""
+
+    return [
+        plot_baseline_error_comparison(
+            analyses
+        ),
+        plot_best_baseline_predictions(
+            analyses
+        ),
+    ]
