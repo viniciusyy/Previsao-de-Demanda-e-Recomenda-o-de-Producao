@@ -4,11 +4,11 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Rede neural MLP.
+Previsão operacional por categoria + feira.
 
 """
 
-from analysis.plots import generate_mlp_plots
+from analysis.plots import generate_operational_forecast_plots
 from database.connection import test_connection
 from database.repository import (
     load_historical_data,
@@ -16,21 +16,25 @@ from database.repository import (
 )
 from evaluation.temporal_validation import run_temporal_validation
 from forecasting.baselines import run_baseline_evaluation
-from forecasting.mlp_model import run_mlp_evaluation, save_mlp_outputs
+from forecasting.mlp_model import run_mlp_evaluation
+from forecasting.operational_forecast import (
+    run_operational_forecast,
+    save_operational_forecast_outputs,
+)
 from forecasting.statistical_models import run_statistical_model_evaluation
 from preprocessing.features import run_feature_engineering
 from preprocessing.validation import validate_historical_data
 
 
 def main() -> None:
-    """Executa a Fase 10 do projeto."""
+    
 
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
     print("E RECOMENDAÇÃO DE PRODUÇÃO")
     print("=" * 70)
     print()
-    print("REDE NEURAL MLP")
+    print("PREVISÃO OPERACIONAL")
     print()
 
     try:
@@ -72,7 +76,7 @@ def main() -> None:
         if errors > 0:
             raise ValueError(
                 f"A base possui {int(errors)} erro(s) de validação. "
-                "A Fase 10 não será executada."
+                "A Fase não será executada."
             )
 
         print("Nenhum erro crítico encontrado.")
@@ -94,6 +98,9 @@ def main() -> None:
         modeling_data = feature_analyses[
             "dataset_modelagem_categoria_feira"
         ]
+        category_fair_data = feature_analyses[
+            "base_categoria_feira_com_atributos"
+        ]
 
         print(
             "Linhas disponíveis para modelagem: "
@@ -102,130 +109,116 @@ def main() -> None:
         print(f"Séries preservadas: {modeling_data['serie'].nunique()}")
 
         print()
-        print("Recriando os folds temporais...")
+        print("Revalidando a seleção do modelo com a base atual...")
 
         temporal_analyses = run_temporal_validation(modeling_data)
         fold_details = temporal_analyses["folds_validacao_temporal"]
-        test_cases = fold_details.loc[
-            fold_details["conjunto"] == "teste"
-        ]
-
-        print(f"Casos de teste disponíveis: {len(test_cases)}")
-
-        print()
-        print("Recriando os seis modelos anteriores...")
-
         baseline_analyses = run_baseline_evaluation(fold_details)
         phase9_analyses = run_statistical_model_evaluation(
             fold_details,
             baseline_analyses,
         )
-
-        print("Modelos anteriores recriados com sucesso.")
-
-        print()
-        print("Treinando e avaliando a MLP...")
-
-        analyses = run_mlp_evaluation(
+        phase10_analyses = run_mlp_evaluation(
             fold_details,
             phase9_analyses,
         )
 
-        validation = analyses["validacao_mlp"]
+        current_decision = phase10_analyses[
+            "decisao_modelo_fase10"
+        ].iloc[0]
+
+        print(
+            "Modelo líder revalidado: "
+            f"{current_decision['nome_modelo_lider']}."
+        )
+        print(f"MAE revalidado: {current_decision['mae_lider']:.4f}")
+
+        print()
+        print("Gerando previsões para as próximas feiras...")
+
+        analyses = run_operational_forecast(
+            category_fair_data=category_fair_data,
+            phase10_analyses=phase10_analyses,
+            source_record_count=len(dataframe),
+        )
+
+        validation = analyses["validacao_previsao_operacional"]
 
         print()
         print("=" * 70)
-        print("VALIDAÇÃO DA MLP")
+        print("VALIDAÇÃO DA PREVISÃO OPERACIONAL")
         print("=" * 70)
         print()
         print(validation.to_string(index=False))
 
-        selection = analyses["selecao_configuracao_mlp_por_fold"]
-        selected = selection.loc[selection["selecionada"]].copy()
-        selection_columns = [
-            "fold",
-            "configuracao",
-            "camadas_ocultas",
-            "alpha",
-            "mae_validacao_interna",
-            "rmse_validacao_interna",
-            "iteracoes",
-            "alerta_convergencia",
+        forecasts = analyses[
+            "previsoes_operacionais_categoria_feira"
+        ]
+        forecast_columns = [
+            "data_producao_prevista",
+            "data_venda_prevista",
+            "feira",
+            "categoria",
+            "demanda_historico_3",
+            "demanda_historico_2",
+            "demanda_historico_1",
+            "previsao_bruta",
+            "previsao_operacional",
         ]
 
         print()
         print("=" * 70)
-        print("CONFIGURAÇÃO SELECIONADA POR FOLD")
+        print("PREVISÕES POR CATEGORIA + FEIRA")
         print("=" * 70)
         print()
-        print(selected[selection_columns].to_string(index=False))
 
-        mlp_metrics = analyses["metricas_mlp_geral"]
-        metric_columns = [
-            "nome_modelo",
-            "quantidade_previsoes",
-            "quantidade_alvos_zero",
-            "mae",
-            "mse",
-            "rmse",
-            "mape",
-        ]
+        forecast_display = forecasts[forecast_columns].copy()
+
+        forecast_display["previsao_bruta"] = (
+            forecast_display["previsao_bruta"].round(4)
+        )
+
+        print(forecast_display.to_string(index=False))
+
+        summary = analyses["resumo_previsao_operacional"]
 
         print()
         print("=" * 70)
-        print("MÉTRICAS DA MLP")
+        print("RESUMO POR FEIRA")
         print("=" * 70)
         print()
-        print(mlp_metrics[metric_columns].to_string(index=False))
+        print(summary.to_string(index=False))
 
-        ranking = analyses["ranking_modelos_fase10"]
-        ranking_columns = [
-            "posicao",
-            "nome_modelo",
-            "mae",
-            "rmse",
-            "mape",
-        ]
+        decision = analyses["decisao_modelo_operacional"].iloc[0]
 
         print()
         print("=" * 70)
-        print("RANKING GERAL APÓS A MLP")
+        print("DECISÃO OPERACIONAL")
         print("=" * 70)
         print()
-        print(ranking[ranking_columns].to_string(index=False))
-
-        decision = analyses["decisao_modelo_fase10"].iloc[0]
-
-        print()
-        print("=" * 70)
-        print("DECISÃO")
-        print("=" * 70)
-        print()
-        print(f"Modelo líder: {decision['nome_modelo_lider']}")
-        print(f"MAE do líder: {decision['mae_lider']:.4f}")
-        print(f"RMSE do líder: {decision['rmse_lider']:.4f}")
-        print(f"MAPE do líder: {decision['mape_lider']:.4f}%")
-        print(f"MAE da MLP: {decision['mae_mlp']:.4f}")
+        print(f"Modelo aplicado: {decision['nome_modelo_operacional']}")
+        print(f"Data de corte: {decision['data_corte']:%Y-%m-%d}")
         print(
-            "MLP superou o baseline em MAE: "
-            f"{'sim' if decision['mlp_superou_baseline_em_mae'] else 'não'}"
+            "Séries previstas: "
+            f"{int(decision['quantidade_series_previstas'])}"
         )
         print(
-            "Variação percentual do MAE da MLP em relação ao baseline: "
-            f"{decision['melhoria_percentual_mae_mlp_sobre_baseline']:.4f}%"
+            "Registros do MySQL no snapshot: "
+            f"{int(decision['registros_origem_mysql'])}"
         )
+        print("Recomendação de produção gerada: não")
 
         print()
         print("Salvando previsões e relatórios...")
 
-        table_files = save_mlp_outputs(analyses)
+        table_files = save_operational_forecast_outputs(analyses)
 
         print(f"{len(table_files)} arquivos CSV gerados.")
 
         print()
         print("Gerando gráficos...")
 
-        figure_files = generate_mlp_plots(analyses)
+        figure_files = generate_operational_forecast_plots(analyses)
 
         print(f"{len(figure_files)} gráfico(s) gerado(s).")
 
@@ -248,9 +241,10 @@ def main() -> None:
         print("EXECUTADA COM SUCESSO")
         print("=" * 70)
         print()
-        print("A MLP foi avaliada nos mesmos 90 casos de teste.")
-        print("A seleção da rede utilizou somente dados de treino.")
-        print("Todos os sete modelos foram comparados pelo mesmo protocolo.")
+        print("O modelo foi revalidado com o snapshot atual do MySQL.")
+        print("Foram geradas 18 previsões em categoria + feira.")
+        print("As previsões utilizam somente as três ocorrências anteriores.")
+        print("Nenhuma distribuição entre produtos foi realizada.")
         print("Nenhuma recomendação de produção foi gerada nesta fase.")
 
     except Exception as exc:
@@ -259,8 +253,9 @@ def main() -> None:
         print("ERRO")
         print("=" * 70)
         print()
-        print(f"Falha na execução da Fase 10: {exc}")
+        print(f"Falha na execução: {exc}")
 
 
 if __name__ == "__main__":
     main()
+

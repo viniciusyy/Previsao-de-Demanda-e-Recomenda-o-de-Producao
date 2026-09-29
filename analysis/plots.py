@@ -1595,3 +1595,119 @@ def generate_mlp_plots(
         plot_mlp_observed_vs_predicted(analyses),
         plot_phase10_mae_by_fold(analyses),
     ]
+
+
+FAIR_ORDER_PHASE11 = [
+    "QUA",
+    "QUI",
+    "SAB_C",
+    "SAB_E",
+    "DOM_C",
+    "DOM_E",
+]
+
+
+def plot_operational_forecast_by_fair(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Apresenta a previsão das categorias em cada feira."""
+
+    predictions = analyses[
+        "previsoes_operacionais_categoria_feira"
+    ].copy()
+    pivot = predictions.pivot(
+        index="feira",
+        columns="categoria",
+        values="previsao_operacional",
+    )
+    fair_order = [fair for fair in FAIR_ORDER_PHASE11 if fair in pivot.index]
+    pivot = pivot.reindex(fair_order)
+
+    axis = pivot.plot(
+        kind="bar",
+        figsize=(12, 7),
+        width=0.78,
+        color=["#4C78A8", "#F58518", "#54A24B"],
+    )
+
+    axis.set_title("Previsão de demanda para a próxima ocorrência de cada feira")
+    axis.set_xlabel("Feira")
+    axis.set_ylabel("Demanda prevista em unidades")
+    axis.tick_params(axis="x", rotation=0)
+    axis.grid(axis="y", alpha=0.25)
+    axis.legend(title="Categoria")
+
+    for container in axis.containers:
+        axis.bar_label(container, fmt="%.0f", padding=3, fontsize=8)
+
+    plt.tight_layout()
+    return _save_figure("24_previsao_operacional_categoria_feira.png")
+
+
+def plot_recent_history_and_forecast(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara as três observações usadas com a previsão resultante."""
+
+    predictions = analyses[
+        "previsoes_operacionais_categoria_feira"
+    ].copy()
+    history = analyses["historico_previsao_operacional"].copy()
+    series_order = predictions["serie"].tolist()
+    positions = {series: index for index, series in enumerate(series_order)}
+
+    plt.figure(figsize=(16, 8))
+
+    for position_value in [1, 2, 3]:
+        current = history.loc[
+            history["posicao_na_janela"] == position_value
+        ].copy()
+        current["x"] = current["serie"].map(positions)
+        offset = (position_value - 2) * 0.12
+        label = f"Histórico {position_value}"
+        plt.scatter(
+            current["x"] + offset,
+            current["demanda_observada"],
+            alpha=0.65,
+            s=38,
+            label=label,
+        )
+
+    forecast_x = predictions["serie"].map(positions)
+    plt.scatter(
+        forecast_x,
+        predictions["previsao_operacional"],
+        marker="D",
+        s=65,
+        color="#E45756",
+        edgecolors="white",
+        linewidths=0.5,
+        label="Previsão",
+        zorder=4,
+    )
+
+    plt.title("Três ocorrências históricas e previsão por série")
+    plt.xlabel("Série categoria + feira")
+    plt.ylabel("Demanda em unidades")
+    plt.xticks(
+        range(len(series_order)),
+        series_order,
+        rotation=55,
+        ha="right",
+    )
+    plt.grid(axis="y", alpha=0.25)
+    plt.legend(ncol=4)
+    plt.tight_layout()
+
+    return _save_figure("25_historico_e_previsao_operacional.png")
+
+
+def generate_operational_forecast_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """Gera os gráficos da Fase 11."""
+
+    return [
+        plot_operational_forecast_by_fair(analyses),
+        plot_recent_history_and_forecast(analyses),
+    ]
