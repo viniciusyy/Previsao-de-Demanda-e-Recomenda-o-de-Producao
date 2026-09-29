@@ -4,26 +4,11 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Suavização exponencial e regressão linear.
-
-Fluxo:
-
-MySQL
-    ↓
-Carregamento e validação
-    ↓
-Agregação por categoria + feira
-    ↓
-Atributos temporais
-    ↓
-Lags e médias móveis
-    ↓
-Validação contra vazamento temporal
-    ↓
-Dataset de modelagem
+Rede neural MLP.
 
 """
-from analysis.plots import generate_statistical_model_plots
+
+from analysis.plots import generate_mlp_plots
 from database.connection import test_connection
 from database.repository import (
     load_historical_data,
@@ -31,23 +16,21 @@ from database.repository import (
 )
 from evaluation.temporal_validation import run_temporal_validation
 from forecasting.baselines import run_baseline_evaluation
-from forecasting.statistical_models import (
-    run_statistical_model_evaluation,
-    save_statistical_model_outputs,
-)
+from forecasting.mlp_model import run_mlp_evaluation, save_mlp_outputs
+from forecasting.statistical_models import run_statistical_model_evaluation
 from preprocessing.features import run_feature_engineering
 from preprocessing.validation import validate_historical_data
 
 
 def main() -> None:
-    
+    """Executa a Fase 10 do projeto."""
 
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
     print("E RECOMENDAÇÃO DE PRODUÇÃO")
     print("=" * 70)
     print()
-    print("SUAVIZAÇÃO EXPONENCIAL E REGRESSÃO LINEAR")
+    print("REDE NEURAL MLP")
     print()
 
     try:
@@ -68,7 +51,6 @@ def main() -> None:
         print("Verificando qualidade dos dados...")
 
         referential_issues = load_referential_integrity_issues()
-
         (
             validation_summary,
             _validation_details,
@@ -82,8 +64,7 @@ def main() -> None:
             validation_summary["nivel"] == "ERRO",
             "quantidade",
         ].sum()
-
-        warnings = validation_summary.loc[
+        warnings_count = validation_summary.loc[
             validation_summary["nivel"] == "ALERTA",
             "quantidade",
         ].sum()
@@ -91,13 +72,15 @@ def main() -> None:
         if errors > 0:
             raise ValueError(
                 f"A base possui {int(errors)} erro(s) de validação. "
-                "A Fase 9 não será executada."
+                "A Fase 10 não será executada."
             )
 
         print("Nenhum erro crítico encontrado.")
 
-        if warnings > 0:
-            print(f"Atenção: existem {int(warnings)} alerta(s) na base.")
+        if warnings_count > 0:
+            print(
+                f"Atenção: existem {int(warnings_count)} alerta(s) na base."
+            )
 
         print(
             "Possíveis casos de demanda censurada: "
@@ -130,36 +113,54 @@ def main() -> None:
         print(f"Casos de teste disponíveis: {len(test_cases)}")
 
         print()
-        print("Recriando os modelos de referência...")
+        print("Recriando os seis modelos anteriores...")
 
         baseline_analyses = run_baseline_evaluation(fold_details)
-        baseline_decision = baseline_analyses[
-            "decisao_baseline_referencia"
-        ].iloc[0]
-
-        print(
-            "Baseline de referência recalculado: "
-            f"{baseline_decision['nome_modelo']}."
-        )
-
-        print()
-        print("Executando os modelos da Fase 9...")
-
-        analyses = run_statistical_model_evaluation(
+        phase9_analyses = run_statistical_model_evaluation(
             fold_details,
             baseline_analyses,
         )
 
-        validation = analyses["validacao_modelos_fase9"]
+        print("Modelos anteriores recriados com sucesso.")
+
+        print()
+        print("Treinando e avaliando a MLP...")
+
+        analyses = run_mlp_evaluation(
+            fold_details,
+            phase9_analyses,
+        )
+
+        validation = analyses["validacao_mlp"]
 
         print()
         print("=" * 70)
-        print("VALIDAÇÃO DOS MODELOS DA FASE 9")
+        print("VALIDAÇÃO DA MLP")
         print("=" * 70)
         print()
         print(validation.to_string(index=False))
 
-        new_metrics = analyses["metricas_modelos_fase9_geral"]
+        selection = analyses["selecao_configuracao_mlp_por_fold"]
+        selected = selection.loc[selection["selecionada"]].copy()
+        selection_columns = [
+            "fold",
+            "configuracao",
+            "camadas_ocultas",
+            "alpha",
+            "mae_validacao_interna",
+            "rmse_validacao_interna",
+            "iteracoes",
+            "alerta_convergencia",
+        ]
+
+        print()
+        print("=" * 70)
+        print("CONFIGURAÇÃO SELECIONADA POR FOLD")
+        print("=" * 70)
+        print()
+        print(selected[selection_columns].to_string(index=False))
+
+        mlp_metrics = analyses["metricas_mlp_geral"]
         metric_columns = [
             "nome_modelo",
             "quantidade_previsoes",
@@ -172,12 +173,12 @@ def main() -> None:
 
         print()
         print("=" * 70)
-        print("MÉTRICAS DOS NOVOS MODELOS")
+        print("MÉTRICAS DA MLP")
         print("=" * 70)
         print()
-        print(new_metrics[metric_columns].to_string(index=False))
+        print(mlp_metrics[metric_columns].to_string(index=False))
 
-        ranking = analyses["ranking_modelos_fase9"]
+        ranking = analyses["ranking_modelos_fase10"]
         ranking_columns = [
             "posicao",
             "nome_modelo",
@@ -188,43 +189,43 @@ def main() -> None:
 
         print()
         print("=" * 70)
-        print("RANKING GERAL APÓS A FASE 9")
+        print("RANKING GERAL APÓS A MLP")
         print("=" * 70)
         print()
         print(ranking[ranking_columns].to_string(index=False))
 
-        decision = analyses["decisao_modelos_fase9"].iloc[0]
+        decision = analyses["decisao_modelo_fase10"].iloc[0]
 
         print()
         print("=" * 70)
-        print("DECISÃO PROVISÓRIA DA FASE 9")
+        print("DECISÃO")
         print("=" * 70)
         print()
-        print(f"Modelo líder: {decision['nome_modelo']}")
-        print(f"MAE: {decision['mae']:.4f}")
-        print(f"MSE: {decision['mse']:.4f}")
-        print(f"RMSE: {decision['rmse']:.4f}")
-        print(f"MAPE: {decision['mape']:.4f}%")
+        print(f"Modelo líder: {decision['nome_modelo_lider']}")
+        print(f"MAE do líder: {decision['mae_lider']:.4f}")
+        print(f"RMSE do líder: {decision['rmse_lider']:.4f}")
+        print(f"MAPE do líder: {decision['mape_lider']:.4f}%")
+        print(f"MAE da MLP: {decision['mae_mlp']:.4f}")
         print(
-            "Superou o baseline em MAE: "
-            f"{'sim' if decision['superou_baseline_em_mae'] else 'não'}"
+            "MLP superou o baseline em MAE: "
+            f"{'sim' if decision['mlp_superou_baseline_em_mae'] else 'não'}"
         )
         print(
-            "Variação percentual do MAE em relação ao baseline: "
-            f"{decision['melhoria_percentual_mae_sobre_baseline']:.4f}%"
+            "Variação percentual do MAE da MLP em relação ao baseline: "
+            f"{decision['melhoria_percentual_mae_mlp_sobre_baseline']:.4f}%"
         )
 
         print()
         print("Salvando previsões e relatórios...")
 
-        table_files = save_statistical_model_outputs(analyses)
+        table_files = save_mlp_outputs(analyses)
 
         print(f"{len(table_files)} arquivos CSV gerados.")
 
         print()
         print("Gerando gráficos...")
 
-        figure_files = generate_statistical_model_plots(analyses)
+        figure_files = generate_mlp_plots(analyses)
 
         print(f"{len(figure_files)} gráfico(s) gerado(s).")
 
@@ -247,10 +248,10 @@ def main() -> None:
         print("EXECUTADA COM SUCESSO")
         print("=" * 70)
         print()
-        print("Modelos novos: suavização exponencial e regressão linear.")
-        print("Todos os modelos foram avaliados nos mesmos 90 casos.")
-        print("O pré-processamento foi ajustado somente no treino.")
-        print("A decisão ainda é provisória: a MLP não foi avaliada.")
+        print("A MLP foi avaliada nos mesmos 90 casos de teste.")
+        print("A seleção da rede utilizou somente dados de treino.")
+        print("Todos os sete modelos foram comparados pelo mesmo protocolo.")
+        print("Nenhuma recomendação de produção foi gerada nesta fase.")
 
     except Exception as exc:
         print()
@@ -258,7 +259,7 @@ def main() -> None:
         print("ERRO")
         print("=" * 70)
         print()
-        print(f"Falha na execução: {exc}")
+        print(f"Falha na execução da Fase 10: {exc}")
 
 
 if __name__ == "__main__":

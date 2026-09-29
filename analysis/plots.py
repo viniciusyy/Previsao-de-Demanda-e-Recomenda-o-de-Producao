@@ -1447,3 +1447,151 @@ def generate_statistical_model_plots(
         plot_phase9_best_model_predictions(analyses),
         plot_phase9_mae_by_fold(analyses),
     ]
+
+
+
+def plot_phase10_model_comparison(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara MAE e RMSE dos sete modelos avaliados."""
+
+    ranking = analyses["ranking_modelos_fase10"].copy()
+    ranking = ranking.sort_values("posicao")
+
+    positions = list(range(len(ranking)))
+    width = 0.36
+
+    plt.figure(figsize=(14, 7))
+    mae_bars = plt.bar(
+        [position - width / 2 for position in positions],
+        ranking["mae"],
+        width=width,
+        label="MAE",
+        color="#4C78A8",
+    )
+    rmse_bars = plt.bar(
+        [position + width / 2 for position in positions],
+        ranking["rmse"],
+        width=width,
+        label="RMSE",
+        color="#F58518",
+    )
+
+    plt.title("Comparação dos modelos após a inclusão da MLP")
+    plt.xlabel("Modelo")
+    plt.ylabel("Erro em unidades de demanda")
+    plt.xticks(
+        positions,
+        ranking["nome_modelo"],
+        rotation=22,
+        ha="right",
+    )
+    plt.grid(axis="y", alpha=0.25)
+    plt.legend()
+    plt.bar_label(mae_bars, fmt="%.2f", padding=3, fontsize=8)
+    plt.bar_label(rmse_bars, fmt="%.2f", padding=3, fontsize=8)
+
+    return _save_figure("21_comparacao_modelos_fase10.png")
+
+
+def plot_mlp_observed_vs_predicted(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara demanda observada e previsão da MLP."""
+
+    predictions = analyses["previsoes_mlp"].copy()
+
+    minimum = min(
+        float(predictions["valor_real"].min()),
+        float(predictions["previsao"].min()),
+    )
+    maximum = max(
+        float(predictions["valor_real"].max()),
+        float(predictions["previsao"].max()),
+    )
+    margin = max((maximum - minimum) * 0.05, 1.0)
+    lower_limit = max(0.0, minimum - margin)
+    upper_limit = maximum + margin
+
+    plt.figure(figsize=(8, 7))
+    plt.scatter(
+        predictions["valor_real"],
+        predictions["previsao"],
+        alpha=0.65,
+        color="#54A24B",
+        edgecolors="white",
+        linewidths=0.4,
+    )
+    plt.plot(
+        [lower_limit, upper_limit],
+        [lower_limit, upper_limit],
+        linestyle="--",
+        color="#E45756",
+        label="Previsão perfeita",
+    )
+
+    plt.title("Demanda observada versus previsão\nMLP global")
+    plt.xlabel("Demanda observada")
+    plt.ylabel("Demanda prevista")
+    plt.xlim(lower_limit, upper_limit)
+    plt.ylim(lower_limit, upper_limit)
+    plt.grid(alpha=0.25)
+    plt.legend()
+
+    return _save_figure("22_real_vs_previsto_mlp.png")
+
+
+def plot_phase10_mae_by_fold(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara a estabilidade temporal da MLP e dos principais modelos."""
+
+    decision = analyses["decisao_modelo_fase10"].iloc[0]
+    selected_models = [
+        decision["baseline_referencia"],
+        "suavizacao_exponencial_simples",
+        "regressao_linear_global",
+        "mlp_global",
+    ]
+
+    metrics = analyses["metricas_comparacao_fase10_por_fold"].copy()
+    metrics = metrics.loc[metrics["modelo"].isin(selected_models)]
+
+    plt.figure(figsize=(11, 6))
+
+    for model_key in selected_models:
+        model_data = metrics.loc[
+            metrics["modelo"] == model_key
+        ].sort_values("fold")
+
+        if model_data.empty:
+            continue
+
+        plt.plot(
+            model_data["fold"],
+            model_data["mae"],
+            marker="o",
+            linewidth=2,
+            label=model_data["nome_modelo"].iloc[0],
+        )
+
+    plt.title("MAE por fold após a inclusão da MLP")
+    plt.xlabel("Fold temporal")
+    plt.ylabel("MAE em unidades de demanda")
+    plt.xticks(sorted(metrics["fold"].unique()))
+    plt.grid(alpha=0.25)
+    plt.legend()
+
+    return _save_figure("23_mae_por_fold_mlp_e_referencia.png")
+
+
+def generate_mlp_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """Gera os gráficos da Fase 10."""
+
+    return [
+        plot_phase10_model_comparison(analyses),
+        plot_mlp_observed_vs_predicted(analyses),
+        plot_phase10_mae_by_fold(analyses),
+    ]
