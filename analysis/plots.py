@@ -1711,3 +1711,121 @@ def generate_operational_forecast_plots(
         plot_operational_forecast_by_fair(analyses),
         plot_recent_history_and_forecast(analyses),
     ]
+
+
+FAIR_ORDER_PHASE12 = [
+    "QUA",
+    "QUI",
+    "SAB_C",
+    "SAB_E",
+    "DOM_C",
+    "DOM_E",
+]
+
+
+def plot_product_forecast_heatmap(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Mostra a quantidade prevista de cada produto em cada feira."""
+
+    predictions = analyses[
+        "previsoes_operacionais_produto_feira"
+    ].copy()
+    predictions["rotulo_produto"] = (
+        predictions["id_produto"].astype(int).astype(str).str.zfill(2)
+        + " - "
+        + predictions["produto"].astype(str)
+    )
+    product_order = (
+        predictions[["id_produto", "rotulo_produto"]]
+        .drop_duplicates()
+        .sort_values("id_produto")["rotulo_produto"]
+        .tolist()
+    )
+    pivot = predictions.pivot(
+        index="rotulo_produto",
+        columns="feira",
+        values="previsao_produto",
+    ).reindex(index=product_order, columns=FAIR_ORDER_PHASE12)
+
+    values = pivot.fillna(0).to_numpy()
+    figure, axis = plt.subplots(figsize=(12, 13))
+    image = axis.imshow(values, aspect="auto", cmap="YlGnBu")
+    colorbar = figure.colorbar(image, ax=axis)
+    colorbar.set_label("Demanda prevista em unidades")
+
+    axis.set_title("Previsão distribuída por produto e feira")
+    axis.set_xlabel("Feira")
+    axis.set_ylabel("Produto")
+    axis.set_xticks(range(len(pivot.columns)), pivot.columns)
+    axis.set_yticks(range(len(pivot.index)), pivot.index)
+
+    threshold = values.max() * 0.55 if values.size else 0
+
+    for row_index in range(values.shape[0]):
+        for column_index in range(values.shape[1]):
+            value = int(values[row_index, column_index])
+            text_color = "white" if value > threshold else "black"
+            axis.text(
+                column_index,
+                row_index,
+                str(value),
+                ha="center",
+                va="center",
+                fontsize=7,
+                color=text_color,
+            )
+
+    plt.tight_layout()
+    return _save_figure("26_previsao_produto_por_feira.png")
+
+
+def plot_top_product_forecasts(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Apresenta os produtos com maior demanda prevista no conjunto das feiras."""
+
+    predictions = analyses[
+        "previsoes_operacionais_produto_feira"
+    ].copy()
+    totals = (
+        predictions.groupby(
+            ["id_produto", "produto", "categoria"],
+            as_index=False,
+        )["previsao_produto"]
+        .sum()
+        .sort_values("previsao_produto", ascending=False)
+        .head(15)
+        .sort_values("previsao_produto", ascending=True)
+    )
+    totals["rotulo"] = (
+        totals["id_produto"].astype(int).astype(str).str.zfill(2)
+        + " - "
+        + totals["produto"].astype(str)
+    )
+
+    plt.figure(figsize=(11, 8))
+    bars = plt.barh(
+        totals["rotulo"],
+        totals["previsao_produto"],
+        color="#4C78A8",
+    )
+    plt.title("Produtos com maior demanda prevista nas seis feiras")
+    plt.xlabel("Demanda prevista total em unidades")
+    plt.ylabel("Produto")
+    plt.grid(axis="x", alpha=0.25)
+    plt.bar_label(bars, fmt="%.0f", padding=3, fontsize=8)
+    plt.tight_layout()
+
+    return _save_figure("27_produtos_com_maior_previsao.png")
+
+
+def generate_product_distribution_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """Gera os gráficos."""
+
+    return [
+        plot_product_forecast_heatmap(analyses),
+        plot_top_product_forecasts(analyses),
+    ]

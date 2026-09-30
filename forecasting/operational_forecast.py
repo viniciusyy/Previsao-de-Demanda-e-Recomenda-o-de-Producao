@@ -14,10 +14,26 @@ from pathlib import Path
 import pandas as pd
 
 
-MODEL_KEY = "media_movel_3"
-MODEL_NAME = "Média móvel (3 ocorrências)"
-HISTORY_WINDOW = 3
 EXPECTED_SERIES = 18
+
+SUPPORTED_OPERATIONAL_MODELS = {
+    "naive": {
+        "nome": "Naive (última ocorrência)",
+        "janela": 1,
+    },
+    "media_movel_2": {
+        "nome": "Média móvel (2 ocorrências)",
+        "janela": 2,
+    },
+    "media_movel_3": {
+        "nome": "Média móvel (3 ocorrências)",
+        "janela": 3,
+    },
+    "media_movel_4": {
+        "nome": "Média móvel (4 ocorrências)",
+        "janela": 4,
+    },
+}
 
 FAIR_WEEKDAYS = {
     "QUA": 2,
@@ -56,8 +72,34 @@ def _next_weekday_after(
     return cutoff_date.normalize() + pd.Timedelta(days=days_ahead)
 
 
+def get_operational_model(
+    phase10_analyses: dict[str, pd.DataFrame],
+) -> tuple[str, str, int]:
+    """Obtém o modelo vencedor e sua janela operacional revalidada."""
+
+    decision = phase10_analyses["decisao_modelo_fase10"].iloc[0]
+    model_key = str(decision["modelo_lider_fase10"])
+
+    if model_key not in SUPPORTED_OPERATIONAL_MODELS:
+        raise ValueError(
+            "O ranking foi alterado com os dados atuais. "
+            f"O modelo líder agora é {model_key}, mas ele ainda não possui "
+            "uma rotina de previsão operacional implementada. A execução "
+            "foi interrompida para revisão metodológica."
+        )
+
+    configuration = SUPPORTED_OPERATIONAL_MODELS[model_key]
+    model_name = str(
+        decision.get("nome_modelo_lider", configuration["nome"])
+    )
+    history_window = int(configuration["janela"])
+
+    return model_key, model_name, history_window
+
+
 def prepare_operational_history(
     category_fair_data: pd.DataFrame,
+    history_window: int,
     cutoff_date: str | pd.Timestamp | None = None,
 ) -> tuple[pd.DataFrame, pd.Timestamp]:
     """Valida e limita o histórico que estará disponível na previsão."""
@@ -125,11 +167,12 @@ def prepare_operational_history(
         )
 
     counts = dataframe.groupby("serie").size()
-    insufficient = counts.loc[counts < HISTORY_WINDOW]
+    insufficient = counts.loc[counts < history_window]
 
     if not insufficient.empty:
         raise ValueError(
-            "Histórico insuficiente para média móvel de três ocorrências: "
+            "Histórico insuficiente para o modelo operacional com janela "
+            f"de {history_window} ocorrência(s): "
             + ", ".join(insufficient.index.astype(str))
         )
 
@@ -150,12 +193,16 @@ def prepare_operational_history(
 
 def create_operational_predictions(
     category_fair_data: pd.DataFrame,
+    model_key: str,
+    model_name: str,
+    history_window: int,
     cutoff_date: str | pd.Timestamp | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp]:
     """Gera uma previsão para a próxima ocorrência de cada série."""
 
     dataframe, effective_cutoff = prepare_operational_history(
         category_fair_data,
+        history_window,
         cutoff_date,
     )
 
@@ -164,7 +211,7 @@ def create_operational_predictions(
 
     for series, group in dataframe.groupby("serie", sort=True):
         ordered = group.sort_values("data_venda")
-        recent = ordered.tail(HISTORY_WINDOW).copy()
+        recent = ordered.tail(history_window).copy()
         fair = str(recent["feira"].iloc[-1])
         category = str(recent["categoria"].iloc[-1])
 
@@ -190,7 +237,7 @@ def create_operational_predictions(
                     "feira": fair,
                     "categoria": category,
                     "posicao_na_janela": position,
-                    "defasagem": HISTORY_WINDOW - position + 1,
+                    "defasagem": history_window - position + 1,
                     "data_venda_historica": historical_row["data_venda"],
                     "demanda_observada": float(
                         historical_row["demanda_observada"]
@@ -199,30 +246,33 @@ def create_operational_predictions(
                 }
             )
 
-        prediction_rows.append(
-            {
+        prediction_row: dict[str, object] = {
                 "data_corte": effective_cutoff,
                 "data_producao_prevista": production_date,
                 "data_venda_prevista": sale_date,
                 "serie": series,
                 "feira": fair,
                 "categoria": category,
-                "modelo": MODEL_KEY,
-                "nome_modelo": MODEL_NAME,
-                "janela_historica": HISTORY_WINDOW,
+                "modelo": model_key,
+                "nome_modelo": model_name,
+                "janela_historica": history_window,
                 "quantidade_observacoes_historicas": len(ordered),
-                "data_historico_3": history_dates[0],
-                "demanda_historico_3": history_values[0],
-                "data_historico_2": history_dates[1],
-                "demanda_historico_2": history_values[1],
-                "data_historico_1": history_dates[2],
-                "demanda_historico_1": history_values[2],
+                # Mantém a precisão integral para que somatórios posteriores
+                # não acumulem o arredondamento individual das categorias.
                 "previsao_bruta": raw_forecast,
                 "previsao_operacional": operational_forecast,
                 "metodo_arredondamento": "inteiro mais próximo; meio para cima",
                 "status": "previsão de demanda; não é recomendação de produção",
             }
-        )
+
+        for position, (history_date, history_value) in enumerate(
+            zip(history_dates, history_values), start=1
+        ):
+            lag = history_window - position + 1
+            prediction_row[f"data_historico_{lag}"] = history_date
+            prediction_row[f"demanda_historico_{lag}"] = history_value
+
+        prediction_rows.append(prediction_row)
 
     predictions = pd.DataFrame(prediction_rows)
     history = pd.DataFrame(history_rows)
@@ -244,7 +294,7 @@ def create_operational_predictions(
 def create_operational_summary(
     predictions: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Resume as previsões por feira."""
+    """Resume as previsões por feira e no total geral."""
 
     summary = (
         predictions.groupby(
@@ -258,58 +308,40 @@ def create_operational_summary(
         .agg(
             quantidade_categorias=("categoria", "nunique"),
             previsao_total_bruta=("previsao_bruta", "sum"),
-            previsao_total_operacional=(
-                "previsao_operacional",
-                "sum",
-            ),
+            previsao_total_operacional=("previsao_operacional", "sum"),
         )
     )
-
-    summary["previsao_total_bruta"] = (
-        summary["previsao_total_bruta"].round(4)
-    )
-
+    summary["previsao_total_bruta"] = summary[
+        "previsao_total_bruta"
+    ].round(4)
     summary["diferenca_arredondamento_total"] = (
         summary["previsao_total_operacional"]
         - summary["previsao_total_bruta"]
     ).round(4)
 
-    fair_rank = {
-        fair: position
-        for position, fair in enumerate(FAIR_ORDER)
-    }
-
+    fair_rank = {fair: position for position, fair in enumerate(FAIR_ORDER)}
     summary["_ordem_feira"] = summary["feira"].map(fair_rank)
-
-    return (
-        summary.sort_values("_ordem_feira")
-        .drop(columns="_ordem_feira")
-        .reset_index(drop=True)
-    )
+    return summary.sort_values("_ordem_feira").drop(
+        columns="_ordem_feira"
+    ).reset_index(drop=True)
 
 
 def create_operational_decision(
     phase10_analyses: dict[str, pd.DataFrame],
     predictions: pd.DataFrame,
     source_record_count: int,
+    model_key: str,
+    model_name: str,
+    history_window: int,
 ) -> pd.DataFrame:
     """Registra o modelo revalidado e o snapshot usado na previsão."""
 
     decision = phase10_analyses["decisao_modelo_fase10"].iloc[0]
-    leader = str(decision["modelo_lider_fase10"])
-
-    if leader != MODEL_KEY:
-        raise ValueError(
-            "O ranking foi alterado com os dados atuais. "
-            f"O modelo líder agora é {leader}. A previsão operacional "
-            "foi interrompida para revisão metodológica."
-        )
-
     return pd.DataFrame(
         [
             {
-                "modelo_operacional": MODEL_KEY,
-                "nome_modelo_operacional": MODEL_NAME,
+                "modelo_operacional": model_key,
+                "nome_modelo_operacional": model_name,
                 "criterio_selecao": "menor MAE no walk-forward",
                 "mae_validacao": float(decision["mae_lider"]),
                 "mse_validacao": float(decision["mse_lider"]),
@@ -318,7 +350,7 @@ def create_operational_decision(
                 "registros_origem_mysql": int(source_record_count),
                 "data_corte": predictions["data_corte"].max(),
                 "quantidade_series_previstas": len(predictions),
-                "janela_historica": HISTORY_WINDOW,
+                "janela_historica": history_window,
                 "recomendacao_producao_gerada": "não",
                 "status": (
                     "Modelo revalidado com a base atual e aplicado a todo "
@@ -329,7 +361,10 @@ def create_operational_decision(
     )
 
 
-def create_operational_configuration() -> pd.DataFrame:
+def create_operational_configuration(
+    model_name: str,
+    history_window: int,
+) -> pd.DataFrame:
     """Documenta as escolhas da previsão operacional."""
 
     rows = [
@@ -340,13 +375,16 @@ def create_operational_configuration() -> pd.DataFrame:
         ),
         (
             "modelo",
-            MODEL_NAME,
+            model_name,
             "Obteve o menor MAE na comparação temporal da Fase 10.",
         ),
         (
             "janela",
-            str(HISTORY_WINDOW),
-            "Utiliza somente as três ocorrências anteriores da mesma série.",
+            str(history_window),
+            (
+                "Utiliza somente as ocorrências anteriores da mesma série, "
+                "conforme a janela do modelo revalidado."
+            ),
         ),
         (
             "horizonte",
@@ -385,6 +423,8 @@ def validate_operational_forecast(
     predictions: pd.DataFrame,
     history: pd.DataFrame,
     phase10_analyses: dict[str, pd.DataFrame],
+    model_key: str,
+    history_window: int,
 ) -> pd.DataFrame:
     """Audita as previsões futuras e o histórico utilizado."""
 
@@ -409,9 +449,9 @@ def validate_operational_forecast(
 
     history_counts = history.groupby("serie").size()
     add_check(
-        "Três observações históricas por série",
+        f"{history_window} observação(ões) histórica(s) por série",
         len(history_counts) == EXPECTED_SERIES
-        and history_counts.eq(HISTORY_WINDOW).all(),
+        and history_counts.eq(history_window).all(),
         f"Contagens encontradas: {sorted(history_counts.unique().tolist())}",
     )
 
@@ -471,7 +511,10 @@ def validate_operational_forecast(
     add_check(
         "Média móvel calculada corretamente",
         means_ok,
-        "A previsão bruta deve ser a média das três ocorrências registradas.",
+        (
+            "A previsão bruta deve ser a média das "
+            f"{history_window} ocorrências registradas."
+        ),
     )
 
     finite_forecasts = all(
@@ -514,18 +557,18 @@ def validate_operational_forecast(
         "As três categorias da mesma feira devem compartilhar a data de venda.",
     )
 
-    models_ok = predictions["modelo"].eq(MODEL_KEY).all()
+    models_ok = predictions["modelo"].eq(model_key).all()
     add_check(
         "Modelo operacional identificado",
         bool(models_ok),
-        f"Modelo esperado: {MODEL_KEY}",
+        f"Modelo esperado: {model_key}",
     )
 
     decision = phase10_analyses["decisao_modelo_fase10"].iloc[0]
     current_leader = str(decision["modelo_lider_fase10"])
     add_check(
         "Modelo líder revalidado com a base atual",
-        current_leader == MODEL_KEY,
+        current_leader == model_key,
         f"Líder encontrado: {current_leader}",
     )
 
@@ -540,19 +583,31 @@ def run_operational_forecast(
 ) -> dict[str, pd.DataFrame]:
     """Executa a previsão operacional da Fase 11."""
 
+    model_key, model_name, history_window = get_operational_model(
+        phase10_analyses
+    )
+
     predictions, history, _ = create_operational_predictions(
         category_fair_data,
+        model_key,
+        model_name,
+        history_window,
         cutoff_date,
     )
     decision = create_operational_decision(
         phase10_analyses,
         predictions,
         source_record_count,
+        model_key,
+        model_name,
+        history_window,
     )
     validation = validate_operational_forecast(
         predictions,
         history,
         phase10_analyses,
+        model_key,
+        history_window,
     )
 
     if validation["resultado"].eq("FALHA").any():
@@ -576,7 +631,7 @@ def run_operational_forecast(
         ),
         "validacao_previsao_operacional": validation,
         "configuracao_previsao_operacional": (
-            create_operational_configuration()
+            create_operational_configuration(model_name, history_window)
         ),
         "decisao_modelo_operacional": decision,
     }
