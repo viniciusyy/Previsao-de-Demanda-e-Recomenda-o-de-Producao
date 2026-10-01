@@ -1829,3 +1829,147 @@ def generate_product_distribution_plots(
         plot_product_forecast_heatmap(analyses),
         plot_top_product_forecasts(analyses),
     ]
+
+#--------------------------------------------------
+
+def plot_capacity_forecast_and_recommendation(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Compara previsão, capacidade e recomendação por dia produtivo."""
+
+    summary = analyses["resumo_recomendacao_por_dia"].copy()
+    labels = (
+        summary["dia_producao"].str.capitalize()
+        + "\n"
+        + summary["feiras_atendidas"]
+    )
+    positions = list(range(len(summary)))
+    width = 0.25
+
+    plt.figure(figsize=(12, 7))
+
+    forecast_bars = plt.bar(
+        [position - width for position in positions],
+        summary["previsao_total"],
+        width=width,
+        label="Previsão",
+        color="#4C78A8",
+    )
+    capacity_bars = plt.bar(
+        positions,
+        summary["capacidade_estimada"],
+        width=width,
+        label="Capacidade histórica estimada",
+        color="#F58518",
+    )
+    recommendation_bars = plt.bar(
+        [position + width for position in positions],
+        summary["recomendacao_total"],
+        width=width,
+        label="Recomendação",
+        color="#54A24B",
+    )
+
+    plt.title(
+        "Previsão, capacidade estimada e recomendação por dia"
+    )
+    plt.xlabel("Dia de produção e feiras atendidas")
+    plt.ylabel("Quantidade de pastéis")
+    plt.xticks(positions, labels)
+    plt.grid(axis="y", alpha=0.25)
+    plt.legend()
+
+    plt.bar_label(
+        forecast_bars,
+        fmt="%.0f",
+        padding=3,
+        fontsize=8,
+    )
+    plt.bar_label(
+        capacity_bars,
+        fmt="%.0f",
+        padding=3,
+        fontsize=8,
+    )
+    plt.bar_label(
+        recommendation_bars,
+        fmt="%.0f",
+        padding=3,
+        fontsize=8,
+    )
+    plt.tight_layout()
+
+    return _save_figure(
+        "28_previsao_capacidade_recomendacao_por_dia.png"
+    )
+
+
+def plot_fair_fulfillment_percentage(
+    analyses: dict[str, pd.DataFrame],
+) -> Path:
+    """Apresenta o percentual da previsão atendido em cada feira."""
+
+    summary = analyses[
+        "resumo_recomendacao_por_feira"
+    ].copy()
+
+    colors = [
+        "#54A24B" if value >= 99.999 else "#E45756"
+        for value in summary["percentual_atendimento"]
+    ]
+
+    plt.figure(figsize=(11, 6))
+    bars = plt.bar(
+        summary["feira"],
+        summary["percentual_atendimento"],
+        color=colors,
+    )
+    plt.axhline(
+        100,
+        color="#4C78A8",
+        linestyle="--",
+        linewidth=1.4,
+        label="Atendimento integral",
+    )
+
+    plt.title(
+        "Percentual da demanda prevista atendido por feira"
+    )
+    plt.xlabel("Feira")
+    plt.ylabel("Atendimento da previsão (%)")
+
+    lower_limit = min(
+        0.0,
+        float(
+            summary["percentual_atendimento"].min()
+        ) - 5,
+    )
+    plt.ylim(lower_limit, 108)
+    plt.grid(axis="y", alpha=0.25)
+    plt.legend()
+    plt.bar_label(
+        bars,
+        fmt="%.2f%%",
+        padding=3,
+        fontsize=9,
+    )
+    plt.tight_layout()
+
+    return _save_figure(
+        "29_percentual_atendimento_por_feira.png"
+    )
+
+
+def generate_production_recommendation_plots(
+    analyses: dict[str, pd.DataFrame],
+) -> list[Path]:
+    """Gera os gráficos da Fase 13."""
+
+    return [
+        plot_capacity_forecast_and_recommendation(
+            analyses
+        ),
+        plot_fair_fulfillment_percentage(
+            analyses
+        ),
+    ]
