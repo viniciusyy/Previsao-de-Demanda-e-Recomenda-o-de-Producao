@@ -3,15 +3,32 @@ Previsão operacional.
 
 O modelo selecionado nas fases de avaliação é reaplicado a todo o histórico
 disponível para gerar uma previsão de demanda para a próxima ocorrência de
-cada combinação categoria + feira. Esta fase gera previsões, não recomendações
-de produção e não distribui quantidades entre produtos.
+cada combinação categoria + feira. Os sete modelos comparados possuem rotina
+operacional. Quando regressão ou MLP vencem, clima e feriado das próximas
+feiras são solicitados explicitamente no terminal. Esta fase gera previsões,
+não recomendações de produção e não distribui quantidades entre produtos.
 """
 
 from decimal import Decimal, ROUND_HALF_UP
 from math import isfinite
 from pathlib import Path
+from typing import Callable
+import warnings
 
 import pandas as pd
+
+from forecasting.mlp_model import (
+    fit_mlp_model,
+    select_mlp_configuration,
+)
+from forecasting.statistical_models import (
+    REGRESSION_FEATURES,
+    TARGET_COLUMN,
+    create_linear_regression_pipeline,
+    select_exponential_alpha,
+    simple_exponential_forecast,
+)
+from preprocessing.features import HISTORICAL_FEATURES
 
 
 EXPECTED_SERIES = 18
@@ -20,19 +37,62 @@ SUPPORTED_OPERATIONAL_MODELS = {
     "naive": {
         "nome": "Naive (última ocorrência)",
         "janela": 1,
+        "estrategia": "media_historica",
+        "requer_contexto_futuro": False,
     },
     "media_movel_2": {
         "nome": "Média móvel (2 ocorrências)",
         "janela": 2,
+        "estrategia": "media_historica",
+        "requer_contexto_futuro": False,
     },
     "media_movel_3": {
         "nome": "Média móvel (3 ocorrências)",
         "janela": 3,
+        "estrategia": "media_historica",
+        "requer_contexto_futuro": False,
     },
     "media_movel_4": {
         "nome": "Média móvel (4 ocorrências)",
         "janela": 4,
+        "estrategia": "media_historica",
+        "requer_contexto_futuro": False,
     },
+    "suavizacao_exponencial_simples": {
+        "nome": "Suavização exponencial simples",
+        "janela": None,
+        "estrategia": "suavizacao_exponencial",
+        "requer_contexto_futuro": False,
+    },
+    "regressao_linear_global": {
+        "nome": "Regressão linear global",
+        "janela": 4,
+        "estrategia": "regressao_global",
+        "requer_contexto_futuro": True,
+    },
+    "mlp_global": {
+        "nome": "MLP global",
+        "janela": 4,
+        "estrategia": "mlp_global",
+        "requer_contexto_futuro": True,
+    },
+}
+
+CLIMATE_OPTIONS = [
+    "Sol",
+    "Frio",
+    "Garoa",
+    "Chuva Moderado",
+    "Chuva Forte",
+]
+
+CLIMATE_ALIASES = {
+    "sol": "Sol",
+    "frio": "Frio",
+    "garoa": "Garoa",
+    "chuva moderado": "Chuva Moderado",
+    "chuva moderada": "Chuva Moderado",
+    "chuva forte": "Chuva Forte",
 }
 
 FAIR_WEEKDAYS = {
@@ -74,8 +134,8 @@ def _next_weekday_after(
 
 def get_operational_model(
     phase10_analyses: dict[str, pd.DataFrame],
-) -> tuple[str, str, int]:
-    """Obtém o modelo vencedor e sua janela operacional revalidada."""
+) -> tuple[str, str, int | None, str, bool]:
+    """Obtém o modelo vencedor e sua estratégia operacional."""
 
     decision = phase10_analyses["decisao_modelo_fase10"].iloc[0]
     model_key = str(decision["modelo_lider_fase10"])
@@ -92,14 +152,29 @@ def get_operational_model(
     model_name = str(
         decision.get("nome_modelo_lider", configuration["nome"])
     )
-    history_window = int(configuration["janela"])
+    configured_window = configuration["janela"]
+    history_window = (
+        int(configured_window)
+        if configured_window is not None
+        else None
+    )
+    strategy = str(configuration["estrategia"])
+    requires_future_context = bool(
+        configuration["requer_contexto_futuro"]
+    )
 
-    return model_key, model_name, history_window
+    return (
+        model_key,
+        model_name,
+        history_window,
+        strategy,
+        requires_future_context,
+    )
 
 
 def prepare_operational_history(
     category_fair_data: pd.DataFrame,
-    history_window: int,
+    history_window: int | None,
     cutoff_date: str | pd.Timestamp | None = None,
 ) -> tuple[pd.DataFrame, pd.Timestamp]:
     """Valida e limita o histórico que estará disponível na previsão."""
@@ -125,7 +200,7 @@ def prepare_operational_history(
             "Colunas obrigatórias ausentes: " + ", ".join(missing_columns)
         )
 
-    dataframe = category_fair_data[required_columns].copy()
+    dataframe = category_fair_data.copy()
     dataframe["data_venda"] = pd.to_datetime(
         dataframe["data_venda"], errors="raise"
     ).dt.normalize()
@@ -167,12 +242,13 @@ def prepare_operational_history(
         )
 
     counts = dataframe.groupby("serie").size()
-    insufficient = counts.loc[counts < history_window]
+    minimum_history = history_window if history_window is not None else 2
+    insufficient = counts.loc[counts < minimum_history]
 
     if not insufficient.empty:
         raise ValueError(
             "Histórico insuficiente para o modelo operacional com janela "
-            f"de {history_window} ocorrência(s): "
+            f"mínima de {minimum_history} ocorrência(s): "
             + ", ".join(insufficient.index.astype(str))
         )
 
@@ -191,53 +267,326 @@ def prepare_operational_history(
     return dataframe, effective_cutoff
 
 
-def create_operational_predictions(
-    category_fair_data: pd.DataFrame,
-    model_key: str,
-    model_name: str,
-    history_window: int,
-    cutoff_date: str | pd.Timestamp | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp]:
-    """Gera uma previsão para a próxima ocorrência de cada série."""
+def _normalize_climate(value: object) -> str:
+    """Normaliza uma das cinco categorias de clima aceitas pelo projeto."""
 
-    dataframe, effective_cutoff = prepare_operational_history(
-        category_fair_data,
-        history_window,
-        cutoff_date,
-    )
+    normalized = " ".join(str(value).strip().lower().split())
 
-    prediction_rows: list[dict[str, object]] = []
-    history_rows: list[dict[str, object]] = []
+    if normalized not in CLIMATE_ALIASES:
+        raise ValueError(
+            "Clima inválido. Utilize uma das opções: "
+            + ", ".join(CLIMATE_OPTIONS)
+            + "."
+        )
 
-    for series, group in dataframe.groupby("serie", sort=True):
-        ordered = group.sort_values("data_venda")
-        recent = ordered.tail(history_window).copy()
-        fair = str(recent["feira"].iloc[-1])
-        category = str(recent["categoria"].iloc[-1])
+    return CLIMATE_ALIASES[normalized]
 
+
+def _normalize_holiday_indicator(value: object) -> int:
+    """Converte respostas usuais de feriado para zero ou um."""
+
+    if isinstance(value, bool):
+        return int(value)
+
+    normalized = str(value).strip().lower()
+    positive = {"1", "s", "sim", "y", "yes", "true"}
+    negative = {"0", "n", "nao", "não", "no", "false"}
+
+    if normalized in positive:
+        return 1
+    if normalized in negative:
+        return 0
+
+    raise ValueError("O indicador de feriado deve ser informado como sim ou não.")
+
+
+def create_future_schedule(
+    history: pd.DataFrame,
+    cutoff_date: pd.Timestamp,
+) -> pd.DataFrame:
+    """Cria as próximas datas de produção e venda das seis feiras."""
+
+    fairs = set(history["feira"].astype(str))
+    if fairs != set(FAIR_WEEKDAYS):
+        raise ValueError(
+            "Não foi possível criar o calendário futuro para as seis feiras."
+        )
+
+    rows = []
+    for fair in FAIR_ORDER:
         sale_date = _next_weekday_after(
-            effective_cutoff,
+            cutoff_date,
             FAIR_WEEKDAYS[fair],
         )
-        production_date = sale_date - pd.Timedelta(days=1)
+        rows.append(
+            {
+                "feira": fair,
+                "data_producao_prevista": (
+                    sale_date - pd.Timedelta(days=1)
+                ),
+                "data_venda_prevista": sale_date,
+            }
+        )
 
-        raw_forecast = float(recent["demanda_observada"].mean())
-        operational_forecast = _round_half_up(raw_forecast)
+    return pd.DataFrame(rows)
 
-        history_values = recent["demanda_observada"].astype(float).tolist()
-        history_dates = recent["data_venda"].tolist()
+
+def collect_future_context(
+    schedule: pd.DataFrame,
+    input_function: Callable[[str], str] = input,
+    output_function: Callable[[str], None] = print,
+) -> pd.DataFrame:
+    """Solicita clima e feriado para cada feira futura no terminal."""
+
+    output_function("")
+    output_function("=" * 70)
+    output_function("CONTEXTO DAS PRÓXIMAS FEIRAS")
+    output_function("=" * 70)
+    output_function("")
+    output_function(
+        "A MLP/regressão necessita de clima e feriado conhecidos antes "
+        "da previsão. Nenhum valor será estimado silenciosamente."
+    )
+
+    rows: list[dict[str, object]] = []
+
+    for row in schedule.itertuples(index=False):
+        output_function("")
+        output_function(
+            f"Feira {row.feira} — venda em "
+            f"{row.data_venda_prevista:%d/%m/%Y}"
+        )
+        output_function(
+            "Climas aceitos: " + ", ".join(CLIMATE_OPTIONS)
+        )
+
+        while True:
+            try:
+                climate = _normalize_climate(
+                    input_function("Clima esperado: ")
+                )
+                break
+            except ValueError as exc:
+                output_function(str(exc))
+
+        while True:
+            try:
+                is_holiday = _normalize_holiday_indicator(
+                    input_function("É feriado? [s/n]: ")
+                )
+                break
+            except ValueError as exc:
+                output_function(str(exc))
+
+        holiday_name = ""
+        if is_holiday:
+            while not holiday_name:
+                holiday_name = input_function(
+                    "Nome do feriado: "
+                ).strip()
+                if not holiday_name:
+                    output_function(
+                        "O nome do feriado deve ser informado."
+                    )
+
+        rows.append(
+            {
+                "feira": row.feira,
+                "data_producao_prevista": row.data_producao_prevista,
+                "data_venda_prevista": row.data_venda_prevista,
+                "clima": climate,
+                "eh_feriado": is_holiday,
+                "nome_feriado": holiday_name,
+                "fonte_contexto_futuro": "informado_no_terminal",
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def prepare_future_context(
+    schedule: pd.DataFrame,
+    future_context: pd.DataFrame,
+) -> pd.DataFrame:
+    """Valida o contexto futuro informado pelo terminal ou por testes."""
+
+    required_columns = ["feira", "clima", "eh_feriado"]
+    missing_columns = [
+        column
+        for column in required_columns
+        if column not in future_context.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Colunas ausentes no contexto futuro: "
+            + ", ".join(missing_columns)
+        )
+
+    context = future_context.copy()
+    context["feira"] = context["feira"].astype(str)
+
+    if len(context) != len(FAIR_ORDER) or context["feira"].duplicated().any():
+        raise ValueError(
+            "O contexto futuro deve possuir uma linha para cada uma das "
+            "seis feiras."
+        )
+
+    if set(context["feira"]) != set(FAIR_ORDER):
+        raise ValueError(
+            "O contexto futuro não contém exatamente as seis feiras."
+        )
+
+    context["clima"] = context["clima"].map(_normalize_climate)
+    context["eh_feriado"] = context["eh_feriado"].map(
+        _normalize_holiday_indicator
+    )
+
+    if "nome_feriado" not in context.columns:
+        context["nome_feriado"] = ""
+    context["nome_feriado"] = context["nome_feriado"].fillna("").astype(str)
+
+    missing_names = context.loc[
+        context["eh_feriado"].eq(1)
+        & context["nome_feriado"].str.strip().eq("")
+    ]
+    if not missing_names.empty:
+        raise ValueError(
+            "O nome do feriado deve ser informado quando eh_feriado = 1."
+        )
+
+    context.loc[
+        context["eh_feriado"].eq(0), "nome_feriado"
+    ] = ""
+
+    if "fonte_contexto_futuro" not in context.columns:
+        context["fonte_contexto_futuro"] = "informado_externamente"
+
+    supplied_date_columns = [
+        column
+        for column in [
+            "data_producao_prevista",
+            "data_venda_prevista",
+        ]
+        if column in context.columns
+    ]
+    for column in supplied_date_columns:
+        context[column] = pd.to_datetime(
+            context[column], errors="raise"
+        ).dt.normalize()
+
+    context_values = context[
+        [
+            "feira",
+            "clima",
+            "eh_feriado",
+            "nome_feriado",
+            "fonte_contexto_futuro",
+            *supplied_date_columns,
+        ]
+    ]
+    merged = schedule.merge(
+        context_values,
+        on="feira",
+        how="left",
+        validate="one_to_one",
+        suffixes=("", "_informada"),
+    )
+
+    for column in supplied_date_columns:
+        informed = f"{column}_informada"
+        if informed in merged.columns:
+            if not merged[column].eq(merged[informed]).all():
+                raise ValueError(
+                    f"As datas informadas em {column} não correspondem "
+                    "ao calendário calculado."
+                )
+            merged = merged.drop(columns=informed)
+
+    return merged
+
+
+def create_future_feature_rows(
+    history: pd.DataFrame,
+    schedule: pd.DataFrame,
+    future_context: pd.DataFrame,
+) -> pd.DataFrame:
+    """Constrói as 18 linhas futuras sem usar demanda posterior ao corte."""
+
+    context = prepare_future_context(schedule, future_context)
+    rows: list[dict[str, object]] = []
+
+    for series, group in history.groupby("serie", sort=True):
+        ordered = group.sort_values("data_venda")
+        recent = ordered.tail(4)
+
+        if len(recent) < 4:
+            raise ValueError(
+                f"A série {series} não possui quatro observações anteriores."
+            )
+
+        fair = str(ordered["feira"].iloc[-1])
+        category = str(ordered["categoria"].iloc[-1])
+        current_context = context.loc[context["feira"] == fair].iloc[0]
+        values = recent["demanda_observada"].astype(float).tolist()
+
+        rows.append(
+            {
+                "serie": series,
+                "feira": fair,
+                "categoria": category,
+                "data_producao_prevista": current_context[
+                    "data_producao_prevista"
+                ],
+                "data_venda_prevista": current_context[
+                    "data_venda_prevista"
+                ],
+                "clima": current_context["clima"],
+                "eh_feriado": int(current_context["eh_feriado"]),
+                "nome_feriado": current_context["nome_feriado"],
+                "fonte_contexto_futuro": current_context[
+                    "fonte_contexto_futuro"
+                ],
+                "tendencia_serie": int(len(ordered) + 1),
+                "lag_1": values[-1],
+                "lag_2": values[-2],
+                "lag_3": values[-3],
+                "media_movel_2": sum(values[-2:]) / 2,
+                "media_movel_3": sum(values[-3:]) / 3,
+                "media_movel_4": sum(values[-4:]) / 4,
+                "quantidade_observacoes_historicas": len(ordered),
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def create_history_audit(
+    history: pd.DataFrame,
+    history_window: int | None,
+) -> pd.DataFrame:
+    """Documenta as observações históricas utilizadas pelo modelo."""
+
+    rows: list[dict[str, object]] = []
+
+    for series, group in history.groupby("serie", sort=True):
+        ordered = group.sort_values("data_venda")
+        used = (
+            ordered.tail(history_window)
+            if history_window is not None
+            else ordered
+        )
+        total = len(used)
 
         for position, (_, historical_row) in enumerate(
-            recent.iterrows(), start=1
+            used.iterrows(), start=1
         ):
-            history_rows.append(
+            rows.append(
                 {
-                    "data_corte": effective_cutoff,
                     "serie": series,
-                    "feira": fair,
-                    "categoria": category,
+                    "feira": historical_row["feira"],
+                    "categoria": historical_row["categoria"],
                     "posicao_na_janela": position,
-                    "defasagem": history_window - position + 1,
+                    "defasagem": total - position + 1,
                     "data_venda_historica": historical_row["data_venda"],
                     "demanda_observada": float(
                         historical_row["demanda_observada"]
@@ -246,36 +595,321 @@ def create_operational_predictions(
                 }
             )
 
-        prediction_row: dict[str, object] = {
-                "data_corte": effective_cutoff,
-                "data_producao_prevista": production_date,
-                "data_venda_prevista": sale_date,
+    return pd.DataFrame(rows)
+
+
+def prepare_machine_learning_training_data(
+    history: pd.DataFrame,
+) -> pd.DataFrame:
+    """Recria o mesmo dataset usado na avaliação dos modelos globais."""
+
+    required_columns = [
+        "data_venda",
+        "serie",
+        TARGET_COLUMN,
+        *HISTORICAL_FEATURES,
+        *REGRESSION_FEATURES,
+    ]
+    missing_columns = [
+        column for column in required_columns if column not in history.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Atributos ausentes para o modelo operacional global: "
+            + ", ".join(missing_columns)
+        )
+
+    training = history.dropna(
+        subset=HISTORICAL_FEATURES
+    ).copy()
+
+    if training.empty or training[REGRESSION_FEATURES].isna().any().any():
+        raise ValueError(
+            "O dataset operacional dos modelos globais contém atributos "
+            "históricos ausentes."
+        )
+
+    return training.sort_values(
+        ["serie", "data_venda"]
+    ).reset_index(drop=True)
+
+
+def create_operational_predictions(
+    category_fair_data: pd.DataFrame,
+    model_key: str,
+    model_name: str,
+    history_window: int | None,
+    strategy: str,
+    requires_future_context: bool,
+    cutoff_date: str | pd.Timestamp | None = None,
+    future_context: pd.DataFrame | None = None,
+    input_function: Callable[[str], str] = input,
+    output_function: Callable[[str], None] = print,
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.Timestamp,
+    dict[str, pd.DataFrame],
+]:
+    """Gera uma previsão futura com a estratégia do modelo vencedor."""
+
+    dataframe, effective_cutoff = prepare_operational_history(
+        category_fair_data,
+        history_window,
+        cutoff_date,
+    )
+    schedule = create_future_schedule(dataframe, effective_cutoff)
+
+    prepared_context = pd.DataFrame(
+        columns=[
+            "feira",
+            "data_producao_prevista",
+            "data_venda_prevista",
+            "clima",
+            "eh_feriado",
+            "nome_feriado",
+            "fonte_contexto_futuro",
+        ]
+    )
+    future_features = pd.DataFrame()
+
+    if requires_future_context:
+        if future_context is None:
+            future_context = collect_future_context(
+                schedule,
+                input_function=input_function,
+                output_function=output_function,
+            )
+        prepared_context = prepare_future_context(
+            schedule,
+            future_context,
+        )
+        future_features = create_future_feature_rows(
+            dataframe,
+            schedule,
+            prepared_context,
+        )
+
+    prediction_rows: list[dict[str, object]] = []
+    diagnostics_rows: list[dict[str, object]] = []
+    mlp_selection = pd.DataFrame()
+
+    if strategy == "media_historica":
+        if history_window is None:
+            raise ValueError("A média histórica exige uma janela definida.")
+
+        for series, group in dataframe.groupby("serie", sort=True):
+            ordered = group.sort_values("data_venda")
+            recent = ordered.tail(history_window).copy()
+            fair = str(recent["feira"].iloc[-1])
+            category = str(recent["categoria"].iloc[-1])
+            date_row = schedule.loc[schedule["feira"] == fair].iloc[0]
+            raw_forecast = float(recent["demanda_observada"].mean())
+
+            prediction_row: dict[str, object] = {
                 "serie": series,
                 "feira": fair,
                 "categoria": category,
-                "modelo": model_key,
-                "nome_modelo": model_name,
-                "janela_historica": history_window,
+                "data_producao_prevista": date_row[
+                    "data_producao_prevista"
+                ],
+                "data_venda_prevista": date_row["data_venda_prevista"],
                 "quantidade_observacoes_historicas": len(ordered),
-                # Mantém a precisão integral para que somatórios posteriores
-                # não acumulem o arredondamento individual das categorias.
                 "previsao_bruta": raw_forecast,
-                "previsao_operacional": operational_forecast,
-                "metodo_arredondamento": "inteiro mais próximo; meio para cima",
-                "status": "previsão de demanda; não é recomendação de produção",
+                "alpha_suavizacao": float("nan"),
+                "configuracao_selecionada": "",
+                "clima": pd.NA,
+                "eh_feriado": pd.NA,
+                "nome_feriado": "",
+                "fonte_contexto_futuro": "não requerido pelo modelo",
             }
 
-        for position, (history_date, history_value) in enumerate(
-            zip(history_dates, history_values), start=1
-        ):
-            lag = history_window - position + 1
-            prediction_row[f"data_historico_{lag}"] = history_date
-            prediction_row[f"demanda_historico_{lag}"] = history_value
+            for lag, (_, historical_row) in enumerate(
+                recent.iloc[::-1].iterrows(), start=1
+            ):
+                prediction_row[f"data_historico_{lag}"] = (
+                    historical_row["data_venda"]
+                )
+                prediction_row[f"demanda_historico_{lag}"] = float(
+                    historical_row["demanda_observada"]
+                )
 
-        prediction_rows.append(prediction_row)
+            prediction_rows.append(prediction_row)
+
+        diagnostics_rows.append(
+            {
+                "modelo": model_key,
+                "estrategia": strategy,
+                "linhas_treino_modelo": 0,
+                "configuracao_selecionada": "",
+                "iteracoes_modelo_final": pd.NA,
+                "perda_modelo_final": float("nan"),
+                "alerta_convergencia": 0,
+            }
+        )
+
+    elif strategy == "suavizacao_exponencial":
+        for series, group in dataframe.groupby("serie", sort=True):
+            ordered = group.sort_values("data_venda")
+            fair = str(ordered["feira"].iloc[-1])
+            category = str(ordered["categoria"].iloc[-1])
+            date_row = schedule.loc[schedule["feira"] == fair].iloc[0]
+            values = ordered["demanda_observada"].astype(float).tolist()
+            alpha, training_mse = select_exponential_alpha(values)
+            raw_forecast = simple_exponential_forecast(values, alpha)
+
+            prediction_rows.append(
+                {
+                    "serie": series,
+                    "feira": fair,
+                    "categoria": category,
+                    "data_producao_prevista": date_row[
+                        "data_producao_prevista"
+                    ],
+                    "data_venda_prevista": date_row[
+                        "data_venda_prevista"
+                    ],
+                    "quantidade_observacoes_historicas": len(ordered),
+                    "previsao_bruta": raw_forecast,
+                    "alpha_suavizacao": alpha,
+                    "mse_treino_selecao_alpha": training_mse,
+                    "configuracao_selecionada": "",
+                    "clima": pd.NA,
+                    "eh_feriado": pd.NA,
+                    "nome_feriado": "",
+                    "fonte_contexto_futuro": "não requerido pelo modelo",
+                }
+            )
+
+        diagnostics_rows.append(
+            {
+                "modelo": model_key,
+                "estrategia": strategy,
+                "linhas_treino_modelo": len(dataframe),
+                "configuracao_selecionada": (
+                    "alpha selecionado separadamente por série"
+                ),
+                "iteracoes_modelo_final": pd.NA,
+                "perda_modelo_final": float("nan"),
+                "alerta_convergencia": 0,
+            }
+        )
+
+    elif strategy in {"regressao_global", "mlp_global"}:
+        training = prepare_machine_learning_training_data(dataframe)
+
+        if strategy == "regressao_global":
+            final_model = create_linear_regression_pipeline()
+            final_model.fit(
+                training[REGRESSION_FEATURES],
+                training[TARGET_COLUMN],
+            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=(
+                        "Found unknown categories in columns .* during "
+                        "transform.*"
+                    ),
+                    category=UserWarning,
+                )
+                raw_predictions = final_model.predict(
+                    future_features[REGRESSION_FEATURES]
+                )
+            selected_name = "regressao_linear_sem_hiperparametros"
+            diagnostics = {
+                "iteracoes": pd.NA,
+                "perda_final": float("nan"),
+                "alerta_convergencia": 0,
+            }
+        else:
+            selected_configuration, mlp_selection = (
+                select_mlp_configuration(training)
+            )
+            final_model, diagnostics = fit_mlp_model(
+                training,
+                selected_configuration,
+            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message=(
+                        "Found unknown categories in columns .* during "
+                        "transform.*"
+                    ),
+                    category=UserWarning,
+                )
+                raw_predictions = final_model.predict(
+                    future_features[REGRESSION_FEATURES]
+                )
+            selected_name = str(
+                selected_configuration["configuracao"]
+            )
+
+        for (_, future_row), raw_prediction in zip(
+            future_features.iterrows(), raw_predictions
+        ):
+            prediction_rows.append(
+                {
+                    **future_row.to_dict(),
+                    "previsao_bruta": float(raw_prediction),
+                    "alpha_suavizacao": float("nan"),
+                    "configuracao_selecionada": selected_name,
+                }
+            )
+
+        diagnostics_rows.append(
+            {
+                "modelo": model_key,
+                "estrategia": strategy,
+                "linhas_treino_modelo": len(training),
+                "configuracao_selecionada": selected_name,
+                "iteracoes_modelo_final": diagnostics["iteracoes"],
+                "perda_modelo_final": diagnostics["perda_final"],
+                "alerta_convergencia": diagnostics[
+                    "alerta_convergencia"
+                ],
+            }
+        )
+
+    else:
+        raise ValueError(
+            f"Estratégia operacional desconhecida: {strategy}."
+        )
 
     predictions = pd.DataFrame(prediction_rows)
-    history = pd.DataFrame(history_rows)
+    predictions["previsao_modelo_sem_limite"] = pd.to_numeric(
+        predictions["previsao_bruta"], errors="raise"
+    )
+    predictions["ajustada_para_zero"] = predictions[
+        "previsao_modelo_sem_limite"
+    ].lt(0).astype(int)
+    predictions["previsao_bruta"] = predictions[
+        "previsao_modelo_sem_limite"
+    ].clip(lower=0.0)
+    predictions["previsao_operacional"] = predictions[
+        "previsao_bruta"
+    ].map(_round_half_up)
+    predictions["data_corte"] = effective_cutoff
+    predictions["modelo"] = model_key
+    predictions["nome_modelo"] = model_name
+    predictions["estrategia_operacional"] = strategy
+    predictions["janela_historica"] = (
+        history_window if history_window is not None else "todo_historico"
+    )
+    predictions["metodo_arredondamento"] = (
+        "inteiro mais próximo; meio para cima"
+    )
+    predictions["status"] = (
+        "previsão de demanda; não é recomendação de produção"
+    )
+
+    audit_window = (
+        history_window if strategy == "media_historica" else None
+    )
+    history = create_history_audit(dataframe, audit_window)
+    history["data_corte"] = effective_cutoff
+    history["modelo"] = model_key
 
     fair_rank = {fair: position for position, fair in enumerate(FAIR_ORDER)}
     predictions["_ordem_feira"] = predictions["feira"].map(fair_rank)
@@ -288,7 +922,13 @@ def create_operational_predictions(
         ["_ordem_feira", "categoria", "posicao_na_janela"]
     ).drop(columns="_ordem_feira").reset_index(drop=True)
 
-    return predictions, history, effective_cutoff
+    artifacts = {
+        "contexto_futuro_previsao": prepared_context,
+        "selecao_mlp_operacional": mlp_selection,
+        "diagnostico_modelo_operacional": pd.DataFrame(diagnostics_rows),
+    }
+
+    return predictions, history, effective_cutoff, artifacts
 
 
 def create_operational_summary(
@@ -332,11 +972,14 @@ def create_operational_decision(
     source_record_count: int,
     model_key: str,
     model_name: str,
-    history_window: int,
+    history_window: int | None,
+    strategy: str,
+    diagnostics: pd.DataFrame,
 ) -> pd.DataFrame:
     """Registra o modelo revalidado e o snapshot usado na previsão."""
 
     decision = phase10_analyses["decisao_modelo_fase10"].iloc[0]
+    diagnostic = diagnostics.iloc[0]
     return pd.DataFrame(
         [
             {
@@ -350,7 +993,25 @@ def create_operational_decision(
                 "registros_origem_mysql": int(source_record_count),
                 "data_corte": predictions["data_corte"].max(),
                 "quantidade_series_previstas": len(predictions),
-                "janela_historica": history_window,
+                "estrategia_operacional": strategy,
+                "janela_historica": (
+                    history_window
+                    if history_window is not None
+                    else "todo_historico"
+                ),
+                "linhas_treino_modelo_final": int(
+                    diagnostic["linhas_treino_modelo"]
+                ),
+                "configuracao_operacional_selecionada": diagnostic[
+                    "configuracao_selecionada"
+                ],
+                "contexto_futuro_requerido": (
+                    "sim"
+                    if SUPPORTED_OPERATIONAL_MODELS[model_key][
+                        "requer_contexto_futuro"
+                    ]
+                    else "não"
+                ),
                 "recomendacao_producao_gerada": "não",
                 "status": (
                     "Modelo revalidado com a base atual e aplicado a todo "
@@ -363,7 +1024,9 @@ def create_operational_decision(
 
 def create_operational_configuration(
     model_name: str,
-    history_window: int,
+    history_window: int | None,
+    strategy: str,
+    requires_future_context: bool,
 ) -> pd.DataFrame:
     """Documenta as escolhas da previsão operacional."""
 
@@ -380,10 +1043,31 @@ def create_operational_configuration(
         ),
         (
             "janela",
-            str(history_window),
             (
-                "Utiliza somente as ocorrências anteriores da mesma série, "
-                "conforme a janela do modelo revalidado."
+                str(history_window)
+                if history_window is not None
+                else "todo o histórico disponível"
+            ),
+            (
+                "Os atributos históricos usam somente observações anteriores "
+                "à data prevista."
+            ),
+        ),
+        (
+            "estrategia_operacional",
+            strategy,
+            "A rotina é escolhida automaticamente pelo modelo líder.",
+        ),
+        (
+            "contexto_futuro",
+            (
+                "clima e feriado informados no terminal"
+                if requires_future_context
+                else "não requerido pelo modelo"
+            ),
+            (
+                "Valores futuros não são inventados nem obtidos das "
+                "observações posteriores."
             ),
         ),
         (
@@ -424,7 +1108,10 @@ def validate_operational_forecast(
     history: pd.DataFrame,
     phase10_analyses: dict[str, pd.DataFrame],
     model_key: str,
-    history_window: int,
+    history_window: int | None,
+    strategy: str,
+    requires_future_context: bool,
+    artifacts: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
     """Audita as previsões futuras e o histórico utilizado."""
 
@@ -448,11 +1135,30 @@ def validate_operational_forecast(
     )
 
     history_counts = history.groupby("serie").size()
+    if strategy == "media_historica":
+        expected_history = history_window
+        history_coverage_ok = (
+            expected_history is not None
+            and len(history_counts) == EXPECTED_SERIES
+            and history_counts.eq(expected_history).all()
+        )
+        history_description = (
+            f"Janela esperada: {expected_history}; contagens: "
+            f"{sorted(history_counts.unique().tolist())}"
+        )
+    else:
+        history_coverage_ok = (
+            len(history_counts) == EXPECTED_SERIES
+            and history_counts.ge(4).all()
+        )
+        history_description = (
+            "Todo o histórico disponível por série; contagens: "
+            f"{sorted(history_counts.unique().tolist())}"
+        )
     add_check(
-        f"{history_window} observação(ões) histórica(s) por série",
-        len(history_counts) == EXPECTED_SERIES
-        and history_counts.eq(history_window).all(),
-        f"Contagens encontradas: {sorted(history_counts.unique().tolist())}",
+        "Cobertura histórica adequada ao modelo",
+        bool(history_coverage_ok),
+        history_description,
     )
 
     duplicated = predictions.duplicated(
@@ -502,24 +1208,68 @@ def validate_operational_forecast(
         "A produção deve ocorrer um dia antes da feira.",
     )
 
-    expected_means = history.groupby("serie")["demanda_observada"].mean()
-    forecast_by_series = predictions.set_index("serie")["previsao_bruta"]
-    means_ok = all(
-        abs(float(forecast_by_series[series]) - float(value)) <= 0.0001
-        for series, value in expected_means.items()
-    )
+    forecast_by_series = predictions.set_index("serie")
+
+    if strategy == "media_historica":
+        expected_forecasts = history.groupby("serie")[
+            "demanda_observada"
+        ].mean()
+        calculation_ok = all(
+            abs(
+                float(forecast_by_series.loc[series, "previsao_bruta"])
+                - float(value)
+            )
+            <= 0.0001
+            for series, value in expected_forecasts.items()
+        )
+        calculation_details = (
+            f"Média das {history_window} ocorrências anteriores."
+        )
+    elif strategy == "suavizacao_exponencial":
+        calculation_ok = True
+        for series, series_history in history.groupby("serie"):
+            values = series_history.sort_values(
+                "data_venda_historica"
+            )["demanda_observada"].astype(float).tolist()
+            alpha = float(
+                forecast_by_series.loc[series, "alpha_suavizacao"]
+            )
+            expected = simple_exponential_forecast(values, alpha)
+            found = float(
+                forecast_by_series.loc[series, "previsao_bruta"]
+            )
+            if abs(expected - found) > 0.0001:
+                calculation_ok = False
+                break
+        calculation_details = (
+            "Alpha selecionado e suavização recalculados somente com o "
+            "histórico de cada série."
+        )
+    else:
+        diagnostics = artifacts["diagnostico_modelo_operacional"]
+        calculation_ok = (
+            len(diagnostics) == 1
+            and int(diagnostics["linhas_treino_modelo"].iloc[0]) > 0
+            and str(
+                diagnostics["configuracao_selecionada"].iloc[0]
+            ).strip()
+            != ""
+        )
+        calculation_details = (
+            "Modelo global reajustado com todo o dataset histórico de "
+            "modelagem."
+        )
     add_check(
-        "Média móvel calculada corretamente",
-        means_ok,
-        (
-            "A previsão bruta deve ser a média das "
-            f"{history_window} ocorrências registradas."
-        ),
+        "Cálculo operacional compatível com o modelo líder",
+        bool(calculation_ok),
+        calculation_details,
     )
 
     finite_forecasts = all(
         isfinite(float(value))
-        for value in predictions["previsao_bruta"].tolist()
+        for value in predictions[
+            ["previsao_modelo_sem_limite", "previsao_bruta"]
+        ].stack().tolist()
     )
     nonnegative = predictions[
         ["previsao_bruta", "previsao_operacional"]
@@ -572,6 +1322,106 @@ def validate_operational_forecast(
         f"Líder encontrado: {current_leader}",
     )
 
+    context = artifacts["contexto_futuro_previsao"]
+    if requires_future_context:
+        context_ok = (
+            len(context) == len(FAIR_ORDER)
+            and set(context["feira"]) == set(FAIR_ORDER)
+            and context["clima"].isin(CLIMATE_OPTIONS).all()
+            and context["eh_feriado"].isin([0, 1]).all()
+        )
+        prediction_context_ok = True
+        for fair, group in predictions.groupby("feira"):
+            context_row = context.loc[context["feira"] == fair].iloc[0]
+            if (
+                not group["clima"].eq(context_row["clima"]).all()
+                or not group["eh_feriado"].eq(
+                    context_row["eh_feriado"]
+                ).all()
+            ):
+                prediction_context_ok = False
+                break
+    else:
+        context_ok = context.empty
+        prediction_context_ok = True
+    add_check(
+        "Contexto futuro tratado explicitamente",
+        bool(context_ok and prediction_context_ok),
+        (
+            "Clima e feriado foram informados para as seis feiras."
+            if requires_future_context
+            else "O modelo líder não utiliza clima ou feriado futuro."
+        ),
+    )
+
+    if strategy in {"regressao_global", "mlp_global"}:
+        lags_ok = True
+        for series, series_history in history.groupby("serie"):
+            latest = series_history.sort_values(
+                "data_venda_historica"
+            )["demanda_observada"].astype(float).tail(3).tolist()
+            predicted_row = forecast_by_series.loc[series]
+            expected_lags = [latest[-1], latest[-2], latest[-3]]
+            found_lags = [
+                float(predicted_row[f"lag_{lag}"])
+                for lag in [1, 2, 3]
+            ]
+            if any(
+                abs(expected - found) > 0.0001
+                for expected, found in zip(expected_lags, found_lags)
+            ):
+                lags_ok = False
+                break
+    else:
+        lags_ok = True
+    add_check(
+        "Atributos futuros usam somente histórico anterior",
+        bool(lags_ok),
+        "lag_1, lag_2 e lag_3 foram conferidos contra o histórico.",
+    )
+
+    diagnostics = artifacts["diagnostico_modelo_operacional"]
+    diagnostics_ok = (
+        len(diagnostics) == 1
+        and diagnostics["modelo"].eq(model_key).all()
+    )
+    if strategy == "mlp_global":
+        diagnostics_ok = diagnostics_ok and diagnostics[
+            "alerta_convergencia"
+        ].eq(0).all()
+    add_check(
+        "Treinamento operacional documentado",
+        bool(diagnostics_ok),
+        (
+            "Convergência final monitorada e configuração registrada."
+            if strategy == "mlp_global"
+            else "Estratégia e volume de treinamento registrados."
+        ),
+    )
+
+    selection = artifacts["selecao_mlp_operacional"]
+    if strategy == "mlp_global":
+        selection_ok = (
+            len(selection) == 4
+            and int(selection["selecionada"].sum()) == 1
+            and selection["ordem_temporal_interna_ok"].all()
+            and selection["series_validacao_interna"].eq(
+                EXPECTED_SERIES
+            ).all()
+        )
+    else:
+        selection_ok = selection.empty
+    add_check(
+        "Seleção operacional da MLP sem vazamento temporal",
+        bool(selection_ok),
+        (
+            "Quatro configurações avaliadas com a última observação de "
+            "cada série reservada para validação interna."
+            if strategy == "mlp_global"
+            else "Verificação não aplicável ao modelo líder atual."
+        ),
+    )
+
     return pd.DataFrame(checks)
 
 
@@ -580,19 +1430,31 @@ def run_operational_forecast(
     phase10_analyses: dict[str, pd.DataFrame],
     source_record_count: int,
     cutoff_date: str | pd.Timestamp | None = None,
+    future_context: pd.DataFrame | None = None,
+    input_function: Callable[[str], str] = input,
+    output_function: Callable[[str], None] = print,
 ) -> dict[str, pd.DataFrame]:
     """Executa a previsão operacional da Fase 11."""
 
-    model_key, model_name, history_window = get_operational_model(
-        phase10_analyses
-    )
+    (
+        model_key,
+        model_name,
+        history_window,
+        strategy,
+        requires_future_context,
+    ) = get_operational_model(phase10_analyses)
 
-    predictions, history, _ = create_operational_predictions(
+    predictions, history, _, artifacts = create_operational_predictions(
         category_fair_data,
         model_key,
         model_name,
         history_window,
-        cutoff_date,
+        strategy,
+        requires_future_context,
+        cutoff_date=cutoff_date,
+        future_context=future_context,
+        input_function=input_function,
+        output_function=output_function,
     )
     decision = create_operational_decision(
         phase10_analyses,
@@ -601,6 +1463,8 @@ def run_operational_forecast(
         model_key,
         model_name,
         history_window,
+        strategy,
+        artifacts["diagnostico_modelo_operacional"],
     )
     validation = validate_operational_forecast(
         predictions,
@@ -608,6 +1472,9 @@ def run_operational_forecast(
         phase10_analyses,
         model_key,
         history_window,
+        strategy,
+        requires_future_context,
+        artifacts,
     )
 
     if validation["resultado"].eq("FALHA").any():
@@ -631,9 +1498,15 @@ def run_operational_forecast(
         ),
         "validacao_previsao_operacional": validation,
         "configuracao_previsao_operacional": (
-            create_operational_configuration(model_name, history_window)
+            create_operational_configuration(
+                model_name,
+                history_window,
+                strategy,
+                requires_future_context,
+            )
         ),
         "decisao_modelo_operacional": decision,
+        **artifacts,
     }
 
 
@@ -656,6 +1529,9 @@ def save_operational_forecast_outputs(
         "validacao_previsao_operacional": tables_directory,
         "configuracao_previsao_operacional": tables_directory,
         "decisao_modelo_operacional": tables_directory,
+        "contexto_futuro_previsao": forecasts_directory,
+        "selecao_mlp_operacional": tables_directory,
+        "diagnostico_modelo_operacional": tables_directory,
     }
 
     generated_files = []

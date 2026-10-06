@@ -137,6 +137,23 @@ def _select_alpha(values: list[float]) -> tuple[float, float]:
     return float(best_alpha), float(best_mse)
 
 
+def simple_exponential_forecast(
+    values: list[float],
+    alpha: float,
+) -> float:
+    """Interface pública para a suavização usada na previsão operacional."""
+
+    return _simple_exponential_forecast(values, alpha)
+
+
+def select_exponential_alpha(
+    values: list[float],
+) -> tuple[float, float]:
+    """Interface pública para selecionar alpha somente com o histórico."""
+
+    return _select_alpha(values)
+
+
 def create_exponential_smoothing_predictions(
     fold_details: pd.DataFrame,
 ) -> pd.DataFrame:

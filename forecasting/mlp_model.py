@@ -256,6 +256,128 @@ def _format_hidden_layers(layers: tuple[int, ...]) -> str:
     return "x".join(str(neurons) for neurons in layers)
 
 
+def select_mlp_configuration(
+    training_data: pd.DataFrame,
+) -> tuple[dict, pd.DataFrame]:
+    """Seleciona a configuração da MLP usando somente dados históricos.
+
+    Esta função também é utilizada na previsão operacional. A última
+    observação disponível de cada série é reservada para a validação interna;
+    nenhuma observação futura é usada na escolha da arquitetura.
+    """
+
+    required_columns = [
+        "data_venda",
+        "serie",
+        TARGET_COLUMN,
+        *REGRESSION_FEATURES,
+    ]
+    missing_columns = [
+        column
+        for column in required_columns
+        if column not in training_data.columns
+    ]
+
+    if missing_columns:
+        raise ValueError(
+            "Colunas obrigatórias ausentes na seleção operacional da MLP: "
+            + ", ".join(missing_columns)
+        )
+
+    ordered = training_data.copy()
+    ordered["data_venda"] = pd.to_datetime(
+        ordered["data_venda"], errors="raise"
+    )
+    ordered[TARGET_COLUMN] = pd.to_numeric(
+        ordered[TARGET_COLUMN], errors="raise"
+    )
+    ordered = ordered.sort_values(
+        ["serie", "data_venda"]
+    ).reset_index(drop=True)
+
+    inner_train, inner_validation, temporal_order_ok = (
+        create_inner_temporal_split(ordered)
+    )
+
+    if inner_train.empty or inner_validation.empty:
+        raise ValueError(
+            "Não há histórico suficiente para selecionar a configuração "
+            "operacional da MLP."
+        )
+
+    selection_rows = []
+
+    for configuration in MLP_CONFIGURATIONS:
+        model, diagnostics = _fit_mlp(inner_train, configuration)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=(
+                    "Found unknown categories in columns .* during "
+                    "transform.*"
+                ),
+                category=UserWarning,
+            )
+            raw_predictions = model.predict(
+                inner_validation[REGRESSION_FEATURES]
+            )
+        predictions = pd.Series(raw_predictions).clip(lower=0)
+        observed = inner_validation[TARGET_COLUMN].reset_index(drop=True)
+        metrics = _calculate_prediction_metrics(observed, predictions)
+
+        selection_rows.append(
+            {
+                "configuracao": configuration["configuracao"],
+                "camadas_ocultas": _format_hidden_layers(
+                    configuration["camadas_ocultas"]
+                ),
+                "alpha": float(configuration["alpha"]),
+                "solver": "lbfgs",
+                "funcao_ativacao": "relu",
+                "random_state": RANDOM_STATE,
+                "linhas_treino_interno": len(inner_train),
+                "linhas_validacao_interna": len(inner_validation),
+                "series_validacao_interna": inner_validation[
+                    "serie"
+                ].nunique(),
+                "ordem_temporal_interna_ok": temporal_order_ok,
+                "previsoes_negativas_brutas_validacao": int(
+                    (raw_predictions < 0).sum()
+                ),
+                **metrics,
+                **diagnostics,
+            }
+        )
+
+    selection = pd.DataFrame(selection_rows).sort_values(
+        [
+            "mae_validacao_interna",
+            "rmse_validacao_interna",
+            "configuracao",
+        ]
+    ).reset_index(drop=True)
+    selected_name = str(selection.iloc[0]["configuracao"])
+    selected_configuration = next(
+        configuration.copy()
+        for configuration in MLP_CONFIGURATIONS
+        if configuration["configuracao"] == selected_name
+    )
+    selection["selecionada"] = selection["configuracao"].eq(
+        selected_name
+    )
+
+    return selected_configuration, selection
+
+
+def fit_mlp_model(
+    training_data: pd.DataFrame,
+    configuration: dict,
+) -> tuple[TransformedTargetRegressor, dict[str, object]]:
+    """Ajusta a MLP final com a configuração previamente selecionada."""
+
+    return _fit_mlp(training_data, configuration)
+
+
 def create_mlp_predictions(
     fold_details: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
