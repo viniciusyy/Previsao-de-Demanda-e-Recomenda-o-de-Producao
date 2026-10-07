@@ -1,0 +1,158 @@
+﻿data_producao_prevista,data_venda_prevista,dia_producao,feira,categoria,id_produto,produto,produto_permitido,previsao_produto,recomendacao_producao,reducao_em_relacao_previsao,percentual_atendimento_produto,observacao_operacional
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,1,Carne,1,48,48,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,2,Carne com queijo,1,57,57,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,3,Carne com ovo,1,12,12,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,4,Carne seca,1,24,24,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,5,Frango,1,3,3,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,6,Frango catupiri,1,67,67,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,7,Queijo,1,40,40,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,8,Pizza,1,38,38,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,9,Bauru,1,13,13,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,10,4 queijos,1,14,14,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,11,Calabresa com queijo,1,16,16,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,12,Calabresa com catupiri,1,9,9,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,13,Salame,1,6,6,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,14,Escarola com bacon,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,15,Escarola sem bacon,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,16,Caipira,1,16,16,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,17,Palmito,1,12,12,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,18,Camarão,1,26,26,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Comum,19,Portuguesa,1,12,12,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Especial,20,Especial de carne,1,6,6,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Especial,21,Especial de frango,1,3,3,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Especial,22,Especial de calabresa,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Especial,23,Especial de pizza,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Especial,24,Especial de portuguesa,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Doce,25,Chocolate,1,25,25,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Doce,26,Banana com chocolate,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-06,2026-10-07,terça-feira,QUA,Doce,27,Banana com doce de leite,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,1,Carne,1,90,90,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,2,Carne com queijo,1,127,127,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,3,Carne com ovo,1,15,15,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,4,Carne seca,1,38,38,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,5,Frango,1,4,4,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,6,Frango catupiri,1,153,153,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,7,Queijo,1,53,53,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,8,Pizza,1,59,59,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,9,Bauru,1,15,15,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,10,4 queijos,1,16,16,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,11,Calabresa com queijo,1,18,18,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,12,Calabresa com catupiri,1,11,11,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,13,Salame,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,14,Escarola com bacon,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,15,Escarola sem bacon,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,16,Caipira,1,18,18,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,17,Palmito,1,10,10,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,18,Camarão,1,30,30,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Comum,19,Portuguesa,1,14,14,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Especial,20,Especial de carne,1,17,17,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Especial,21,Especial de frango,1,8,8,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Especial,22,Especial de calabresa,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Especial,23,Especial de pizza,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Especial,24,Especial de portuguesa,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Doce,25,Chocolate,1,8,8,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Doce,26,Banana com chocolate,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-07,2026-10-08,quarta-feira,QUI,Doce,27,Banana com doce de leite,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,1,Carne,1,108,108,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,2,Carne com queijo,1,122,122,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,3,Carne com ovo,1,24,24,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,4,Carne seca,1,49,49,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,5,Frango,1,8,8,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,6,Frango catupiri,1,177,177,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,7,Queijo,1,64,64,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,8,Pizza,1,64,64,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,9,Bauru,1,22,22,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,10,4 queijos,1,22,22,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,11,Calabresa com queijo,1,25,25,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,12,Calabresa com catupiri,1,14,14,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,13,Salame,1,11,11,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,14,Escarola com bacon,1,12,12,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,15,Escarola sem bacon,1,5,5,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,16,Caipira,1,26,26,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,17,Palmito,1,20,20,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,18,Camarão,1,45,45,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Comum,19,Portuguesa,1,24,24,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Especial,20,Especial de carne,1,18,18,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Especial,21,Especial de frango,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Especial,22,Especial de calabresa,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Especial,23,Especial de pizza,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Especial,24,Especial de portuguesa,1,3,3,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Doce,25,Chocolate,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Doce,26,Banana com chocolate,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_C,Doce,27,Banana com doce de leite,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,1,Carne,1,83,83,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,2,Carne com queijo,1,146,146,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,3,Carne com ovo,1,20,20,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,4,Carne seca,1,41,41,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,6,Frango catupiri,1,172,172,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,7,Queijo,1,59,59,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,8,Pizza,1,48,48,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,9,Bauru,1,19,19,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,10,4 queijos,1,19,19,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,11,Calabresa com queijo,1,22,22,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,12,Calabresa com catupiri,1,12,12,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,13,Salame,1,10,10,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,14,Escarola com bacon,1,10,10,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,16,Caipira,1,21,21,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,17,Palmito,1,17,17,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,18,Camarão,1,49,49,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Comum,19,Portuguesa,1,21,21,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Especial,20,Especial de carne,1,19,19,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Especial,21,Especial de frango,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Especial,22,Especial de calabresa,1,3,3,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Especial,23,Especial de pizza,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Especial,24,Especial de portuguesa,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Doce,25,Chocolate,1,9,9,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Doce,26,Banana com chocolate,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-09,2026-10-10,sexta-feira,SAB_E,Doce,27,Banana com doce de leite,1,1,1,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,1,Carne,1,129,125,4,96.89922480620154,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,2,Carne com queijo,1,189,184,5,97.35449735449735,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,3,Carne com ovo,1,35,34,1,97.14285714285714,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,4,Carne seca,1,62,60,2,96.7741935483871,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,5,Frango,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,6,Frango catupiri,1,230,224,6,97.3913043478261,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,7,Queijo,1,79,77,2,97.46835443037975,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,8,Pizza,1,63,61,2,96.82539682539682,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,9,Bauru,1,20,19,1,95.0,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,10,4 queijos,1,20,19,1,95.0,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,11,Calabresa com queijo,1,29,28,1,96.55172413793103,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,12,Calabresa com catupiri,1,15,15,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,13,Salame,1,10,10,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,14,Escarola com bacon,1,10,10,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,15,Escarola sem bacon,1,4,4,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,16,Caipira,1,25,24,1,96.0,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,17,Palmito,1,13,13,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,18,Camarão,1,59,57,2,96.61016949152543,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Comum,19,Portuguesa,1,27,26,1,96.29629629629629,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Especial,20,Especial de carne,1,66,64,2,96.96969696969697,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Especial,21,Especial de frango,1,35,34,1,97.14285714285714,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Especial,22,Especial de calabresa,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Especial,23,Especial de pizza,1,6,6,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Especial,24,Especial de portuguesa,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Doce,25,Chocolate,1,46,45,1,97.82608695652173,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_C,Doce,26,Banana com chocolate,1,11,11,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_C,Doce,27,Banana com doce de leite,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,1,Carne,1,72,70,2,97.22222222222221,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,2,Carne com queijo,1,113,110,3,97.34513274336283,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,3,Carne com ovo,1,23,22,1,95.65217391304348,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,4,Carne seca,1,37,36,1,97.2972972972973,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,6,Frango catupiri,1,141,137,4,97.16312056737588,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,7,Queijo,1,50,49,1,98.0,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,8,Pizza,1,48,47,1,97.91666666666666,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,9,Bauru,1,18,17,1,94.44444444444444,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,10,4 queijos,1,18,17,1,94.44444444444444,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,11,Calabresa com queijo,1,24,23,1,95.83333333333334,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,12,Calabresa com catupiri,1,17,17,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,13,Salame,1,9,9,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,14,Escarola com bacon,1,9,9,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,16,Caipira,1,27,26,1,96.29629629629629,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,17,Palmito,1,12,12,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,18,Camarão,1,43,42,1,97.67441860465115,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Comum,19,Portuguesa,1,27,26,1,96.29629629629629,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Especial,20,Especial de carne,1,17,16,1,94.11764705882352,quantidade reduzida por limite de capacidade
+2026-10-10,2026-10-11,sábado,DOM_E,Especial,21,Especial de frango,1,7,7,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Especial,22,Especial de calabresa,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Especial,23,Especial de pizza,1,2,2,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Especial,24,Especial de portuguesa,1,3,3,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Doce,25,Chocolate,1,5,5,0,100.0,produzir conforme recomendação
+2026-10-10,2026-10-11,sábado,DOM_E,Doce,26,Banana com chocolate,1,1,1,0,100.0,produzir conforme recomendação

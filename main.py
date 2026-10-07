@@ -4,7 +4,7 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Recomendação de produção por Programação Linear.
+Consolidação operacional e documentação final.
 
 """
 
@@ -30,17 +30,21 @@ from optimization.production_recommendation import (
 )
 from preprocessing.features import run_feature_engineering
 from preprocessing.validation import validate_historical_data
+from reporting.final_consolidation import (
+    run_final_consolidation,
+    save_final_consolidation_outputs,
+)
 
 
 def main() -> None:
-
+    
 
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
     print("E RECOMENDAÇÃO DE PRODUÇÃO")
     print("=" * 70)
     print()
-    print("RECOMENDAÇÃO DE PRODUÇÃO POR SIMPLEX")
+    print("CONSOLIDAÇÃO OPERACIONAL E DOCUMENTAÇÃO FINAL")
     print()
 
     try:
@@ -82,7 +86,7 @@ def main() -> None:
         if errors > 0:
             raise ValueError(
                 f"A base possui {int(errors)} erro(s) de validação. "
-                "A Fase 13 não será executada."
+                "A Fase 14 não será executada."
             )
 
         print("Nenhum erro crítico encontrado.")
@@ -376,7 +380,7 @@ def main() -> None:
 
         print()
         print("=" * 70)
-        print("DECISÃO")
+        print("DECISÃO DA OTIMIZAÇÃO")
         print("=" * 70)
         print()
         print(
@@ -419,6 +423,57 @@ def main() -> None:
         print(f"{len(figure_files)} gráfico(s) gerado(s).")
 
         print()
+        print("Consolidando o pacote operacional final...")
+
+        final_artifacts = run_final_consolidation(
+            ranking=ranking,
+            operational_analyses=phase11_analyses,
+            distribution_analyses=phase12_analyses,
+            recommendation_analyses=analyses,
+            censored_count=len(censored_data),
+        )
+        final_files = save_final_consolidation_outputs(final_artifacts)
+        final_summary = final_artifacts["resumo_execucao_final"].iloc[0]
+        final_validation = final_artifacts[
+            "validacao_consolidacao_final"
+        ]
+
+        print()
+        print("=" * 70)
+        print("CONSOLIDAÇÃO OPERACIONAL FINAL")
+        print("=" * 70)
+        print()
+        print(
+            "Modelo operacional: "
+            f"{final_summary['nome_modelo_operacional']}"
+        )
+        print(
+            "Registros do snapshot: "
+            f"{int(final_summary['registros_origem_mysql'])}"
+        )
+        print(
+            "Itens com produção recomendada: "
+            f"{int(final_summary['itens_com_producao_recomendada'])}"
+        )
+        print(
+            "Previsão total: "
+            f"{int(final_summary['previsao_total'])}"
+        )
+        print(
+            "Recomendação total: "
+            f"{int(final_summary['recomendacao_total'])}"
+        )
+        print(
+            "Redução total: "
+            f"{int(final_summary['reducao_total'])}"
+        )
+        print(
+            "Validações da consolidação aprovadas: "
+            f"{int(final_validation['resultado'].eq('OK').sum())} "
+            f"de {len(final_validation)}."
+        )
+
+        print()
         print("=" * 70)
         print("ARQUIVOS GERADOS")
         print("=" * 70)
@@ -433,6 +488,11 @@ def main() -> None:
             print(f"- {path.name}")
 
         print()
+        print("Pacote operacional final:")
+        for path in final_files:
+            print(f"- {path.name}")
+
+        print()
         print("=" * 70)
         print("EXECUTADA COM SUCESSO")
         print("=" * 70)
@@ -443,6 +503,8 @@ def main() -> None:
         print("O modelo linear foi resolvido pelo dual Simplex do HiGHS.")
         print("A recomendação não ultrapassa a previsão nem a capacidade.")
         print("O mix previsto foi preservado proporcionalmente.")
+        print("O plano operacional detalhado foi consolidado.")
+        print("As premissas e limitações foram registradas no relatório final.")
         print("A configuração da capacidade poderá ser substituída no futuro.")
 
     except Exception as exc:
@@ -456,8 +518,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
 
 
 
