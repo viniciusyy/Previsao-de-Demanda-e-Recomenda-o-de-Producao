@@ -38,10 +38,7 @@ class MainForecastAuditTests(unittest.TestCase):
                     "categoria": "Comum" if product < 20 else "Especial" if product < 25 else "Doce",
                     "data_venda": row["data_venda"], "data_producao": row["data_producao"],
                     "quantidade_vendida": sold, "quantidade_produzida": sold + 1,
-                    "quantidade_sobra": 1, "clima": {
-                        "Sol": "SOL", "Frio": "FRIO", "Garoa": "GAROA",
-                        "Chuva Moderado": "CHUVA_MODERADA", "Chuva Forte": "CHUVA_FORTE",
-                    }[row["clima"]],
+                    "quantidade_sobra": 1, "clima": row["clima"],
                     "eh_feriado": row["eh_feriado"], "nome_feriado": row["nome_feriado"],
                     "observacoes": "Base sintética de teste",
                 })
@@ -89,6 +86,10 @@ class MainForecastAuditTests(unittest.TestCase):
                 self.assertTrue(frame["data_corte"].eq(cutoff).all())
             self.assertEqual(int(summary["registros_origem_mysql"].iloc[0]), len(source))
             self.assertEqual(len(audit), 18)
+            attributes = pd.read_csv(root / "reports/audit/auditoria_atributos_futuros.csv")
+            climate = attributes.loc[attributes["atributo"].eq("clima")]
+            self.assertEqual(len(climate), 18)
+            self.assertTrue(climate["fora_faixa_treino"].eq(0).all())
             self.assertTrue(category["modelo"].eq(summary["modelo_operacional"].iloc[0]).all())
             self.assertTrue((root / "reports/audit/historico_atual_produto_feira.csv").exists())
 

@@ -9,7 +9,7 @@
 2026-10-11,DOM_C | Comum,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Comum,mlp_global,feira,DOM_C,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Comum,mlp_global,categoria,Comum,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,DOM_C | Comum,mlp_global,clima,Frio,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,DOM_C | Comum,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Doce,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,DOM_C | Doce,mlp_global,lag_1,16.0,,16.0,8.0,18.0,0,OK,
 2026-10-11,DOM_C | Doce,mlp_global,lag_2,17.0,,17.0,8.0,18.0,0,OK,
@@ -20,7 +20,7 @@
 2026-10-11,DOM_C | Doce,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Doce,mlp_global,feira,DOM_C,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Doce,mlp_global,categoria,Doce,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,DOM_C | Doce,mlp_global,clima,Frio,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,DOM_C | Doce,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Especial,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,DOM_C | Especial,mlp_global,lag_1,55.0,,55.0,46.0,71.0,0,OK,
 2026-10-11,DOM_C | Especial,mlp_global,lag_2,55.0,,55.0,46.0,71.0,0,OK,
@@ -31,7 +31,7 @@
 2026-10-11,DOM_C | Especial,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Especial,mlp_global,feira,DOM_C,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_C | Especial,mlp_global,categoria,Especial,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,DOM_C | Especial,mlp_global,clima,Frio,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,DOM_C | Especial,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Comum,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,DOM_E | Comum,mlp_global,lag_1,526.0,,526.0,475.0,682.0,0,OK,
 2026-10-11,DOM_E | Comum,mlp_global,lag_2,682.0,,682.0,475.0,675.0,1,OK,Valor fora da faixa empírica do treino desta série.
@@ -42,7 +42,7 @@
 2026-10-11,DOM_E | Comum,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Comum,mlp_global,feira,DOM_E,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Comum,mlp_global,categoria,Comum,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,DOM_E | Comum,mlp_global,clima,Frio,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,DOM_E | Comum,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Doce,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,DOM_E | Doce,mlp_global,lag_1,6.0,,6.0,2.0,13.0,0,OK,
 2026-10-11,DOM_E | Doce,mlp_global,lag_2,9.0,,9.0,2.0,13.0,0,OK,
@@ -53,7 +53,7 @@
 2026-10-11,DOM_E | Doce,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Doce,mlp_global,feira,DOM_E,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Doce,mlp_global,categoria,Doce,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,DOM_E | Doce,mlp_global,clima,Frio,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,DOM_E | Doce,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Especial,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,DOM_E | Especial,mlp_global,lag_1,32.0,,32.0,28.0,44.0,0,OK,
 2026-10-11,DOM_E | Especial,mlp_global,lag_2,36.0,,36.0,28.0,44.0,0,OK,
@@ -64,7 +64,7 @@
 2026-10-11,DOM_E | Especial,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Especial,mlp_global,feira,DOM_E,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,DOM_E | Especial,mlp_global,categoria,Especial,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,DOM_E | Especial,mlp_global,clima,Frio,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,DOM_E | Especial,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Comum,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,QUA | Comum,mlp_global,lag_1,447.0,,447.0,242.0,502.0,0,OK,
 2026-10-11,QUA | Comum,mlp_global,lag_2,470.0,,470.0,242.0,502.0,0,OK,
@@ -75,7 +75,7 @@
 2026-10-11,QUA | Comum,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Comum,mlp_global,feira,QUA,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Comum,mlp_global,categoria,Comum,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,QUA | Comum,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,QUA | Comum,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Doce,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,QUA | Doce,mlp_global,lag_1,33.0,,33.0,18.0,36.0,0,OK,
 2026-10-11,QUA | Doce,mlp_global,lag_2,27.0,,27.0,18.0,36.0,0,OK,
@@ -86,7 +86,7 @@
 2026-10-11,QUA | Doce,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Doce,mlp_global,feira,QUA,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Doce,mlp_global,categoria,Doce,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,QUA | Doce,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,QUA | Doce,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Especial,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,QUA | Especial,mlp_global,lag_1,15.0,,15.0,9.0,22.0,0,OK,
 2026-10-11,QUA | Especial,mlp_global,lag_2,22.0,,22.0,9.0,21.0,1,OK,Valor fora da faixa empírica do treino desta série.
@@ -97,7 +97,7 @@
 2026-10-11,QUA | Especial,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Especial,mlp_global,feira,QUA,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUA | Especial,mlp_global,categoria,Especial,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,QUA | Especial,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,QUA | Especial,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Comum,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,QUI | Comum,mlp_global,lag_1,774.0,,774.0,384.0,1276.0,0,OK,
 2026-10-11,QUI | Comum,mlp_global,lag_2,748.0,,748.0,384.0,1276.0,0,OK,
@@ -108,7 +108,7 @@
 2026-10-11,QUI | Comum,mlp_global,eh_feriado,0,,,0,1,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Comum,mlp_global,feira,QUI,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Comum,mlp_global,categoria,Comum,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,QUI | Comum,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,QUI | Comum,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Doce,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,QUI | Doce,mlp_global,lag_1,15.0,,15.0,6.0,17.0,0,OK,
 2026-10-11,QUI | Doce,mlp_global,lag_2,11.0,,11.0,6.0,17.0,0,OK,
@@ -119,7 +119,7 @@
 2026-10-11,QUI | Doce,mlp_global,eh_feriado,0,,,0,1,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Doce,mlp_global,feira,QUI,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Doce,mlp_global,categoria,Doce,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,QUI | Doce,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,QUI | Doce,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Especial,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,QUI | Especial,mlp_global,lag_1,43.0,,43.0,20.0,102.0,0,OK,
 2026-10-11,QUI | Especial,mlp_global,lag_2,31.0,,31.0,20.0,102.0,0,OK,
@@ -130,7 +130,7 @@
 2026-10-11,QUI | Especial,mlp_global,eh_feriado,0,,,0,1,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Especial,mlp_global,feira,QUI,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,QUI | Especial,mlp_global,categoria,Especial,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,QUI | Especial,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,QUI | Especial,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Comum,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,SAB_C | Comum,mlp_global,lag_1,651.0,,651.0,473.0,786.0,0,OK,
 2026-10-11,SAB_C | Comum,mlp_global,lag_2,734.0,,734.0,473.0,786.0,0,OK,
@@ -141,7 +141,7 @@
 2026-10-11,SAB_C | Comum,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Comum,mlp_global,feira,SAB_C,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Comum,mlp_global,categoria,Comum,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,SAB_C | Comum,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,SAB_C | Comum,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Doce,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,SAB_C | Doce,mlp_global,lag_1,11.0,,11.0,9.0,13.0,0,OK,
 2026-10-11,SAB_C | Doce,mlp_global,lag_2,11.0,,11.0,9.0,13.0,0,OK,
@@ -152,7 +152,7 @@
 2026-10-11,SAB_C | Doce,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Doce,mlp_global,feira,SAB_C,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Doce,mlp_global,categoria,Doce,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,SAB_C | Doce,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,SAB_C | Doce,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Especial,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,SAB_C | Especial,mlp_global,lag_1,40.0,,40.0,28.0,44.0,0,OK,
 2026-10-11,SAB_C | Especial,mlp_global,lag_2,33.0,,33.0,28.0,44.0,0,OK,
@@ -163,7 +163,7 @@
 2026-10-11,SAB_C | Especial,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Especial,mlp_global,feira,SAB_C,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_C | Especial,mlp_global,categoria,Especial,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,SAB_C | Especial,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,SAB_C | Especial,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Comum,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,SAB_E | Comum,mlp_global,lag_1,840.0,,840.0,530.0,838.0,1,OK,Valor fora da faixa empírica do treino desta série.
 2026-10-11,SAB_E | Comum,mlp_global,lag_2,838.0,,838.0,530.0,825.0,1,OK,Valor fora da faixa empírica do treino desta série.
@@ -174,7 +174,7 @@
 2026-10-11,SAB_E | Comum,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Comum,mlp_global,feira,SAB_E,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Comum,mlp_global,categoria,Comum,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,SAB_E | Comum,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,SAB_E | Comum,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Doce,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,SAB_E | Doce,mlp_global,lag_1,12.0,,12.0,9.0,15.0,0,OK,
 2026-10-11,SAB_E | Doce,mlp_global,lag_2,14.0,,14.0,9.0,15.0,0,OK,
@@ -185,7 +185,7 @@
 2026-10-11,SAB_E | Doce,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Doce,mlp_global,feira,SAB_E,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Doce,mlp_global,categoria,Doce,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,SAB_E | Doce,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,SAB_E | Doce,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Especial,mlp_global,tendencia_serie,21,,21,5,20,1,OK,Avanço temporal esperado; não indica bug por si só.
 2026-10-11,SAB_E | Especial,mlp_global,lag_1,40.0,,40.0,25.0,44.0,0,OK,
 2026-10-11,SAB_E | Especial,mlp_global,lag_2,37.0,,37.0,25.0,44.0,0,OK,
@@ -196,4 +196,4 @@
 2026-10-11,SAB_E | Especial,mlp_global,eh_feriado,0,,,0,0,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Especial,mlp_global,feira,SAB_E,"DOM_C, DOM_E, QUA, QUI, SAB_C, SAB_E",,,,0,CONTEXTO_REGISTRADO,
 2026-10-11,SAB_E | Especial,mlp_global,categoria,Especial,"Comum, Doce, Especial",,,,0,CONTEXTO_REGISTRADO,
-2026-10-11,SAB_E | Especial,mlp_global,clima,Sol,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,1,CONTEXTO_REGISTRADO,Categoria não vista no treino global.
+2026-10-11,SAB_E | Especial,mlp_global,clima,SOL,"CHUVA_FORTE, CHUVA_MODERADA, FRIO, GAROA, SOL",,,,0,CONTEXTO_REGISTRADO,

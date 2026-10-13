@@ -87,12 +87,12 @@ CLIMATE_OPTIONS = [
 ]
 
 CLIMATE_ALIASES = {
-    "sol": "Sol",
-    "frio": "Frio",
-    "garoa": "Garoa",
-    "chuva moderado": "Chuva Moderado",
-    "chuva moderada": "Chuva Moderado",
-    "chuva forte": "Chuva Forte",
+    "sol": "SOL",
+    "frio": "FRIO",
+    "garoa": "GAROA",
+    "chuva moderado": "CHUVA_MODERADA",
+    "chuva moderada": "CHUVA_MODERADA",
+    "chuva forte": "CHUVA_FORTE",
 }
 
 FAIR_WEEKDAYS = {
@@ -268,9 +268,16 @@ def prepare_operational_history(
 
 
 def _normalize_climate(value: object) -> str:
-    """Normaliza uma das cinco categorias de clima aceitas pelo projeto."""
+    """Converte a entrada para os mesmos rótulos do histórico do MySQL.
 
-    normalized = " ".join(str(value).strip().lower().split())
+    Aceita os nomes exibidos no terminal e os códigos já normalizados.
+    A normalização é idempotente porque o contexto é validado novamente
+    antes da criação dos atributos futuros.
+    """
+
+    normalized = " ".join(
+        str(value).strip().lower().replace("_", " ").split()
+    )
 
     if normalized not in CLIMATE_ALIASES:
         raise ValueError(
@@ -1332,7 +1339,7 @@ def validate_operational_forecast(
         context_ok = (
             len(context) == len(FAIR_ORDER)
             and set(context["feira"]) == set(FAIR_ORDER)
-            and context["clima"].isin(CLIMATE_OPTIONS).all()
+            and context["clima"].isin(CLIMATE_ALIASES.values()).all()
             and context["eh_feriado"].isin([0, 1]).all()
         )
         prediction_context_ok = True

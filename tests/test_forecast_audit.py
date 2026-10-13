@@ -136,12 +136,12 @@ class ForecastAuditTests(unittest.TestCase):
 
     def test_climate_encoding_difference_is_visible_without_normalizing_inputs(self):
         base, operational, comparison, source = _case()
-        labels = {"Sol": "SOL", "Frio": "FRIO", "Garoa": "GAROA",
-                  "Chuva Moderado": "CHUVA_MODERADA", "Chuva Forte": "CHUVA_FORTE"}
-        base["clima"] = base["clima"].map(labels)
         history, cutoff = prepare_operational_history(base, 4)
         future = create_future_feature_rows(history, create_future_schedule(history, cutoff),
                                             _build_future_context())
+        # Simula a regressão antiga após a preparação. A auditoria deve
+        # registrar a entrada incorreta sem corrigi-la silenciosamente.
+        future["clima"] = "Sol"
         operational["atributos_futuros_previsao"] = future
         operational["previsoes_operacionais_categoria_feira"]["modelo"] = "mlp_global"
         before = future.copy(deep=True)

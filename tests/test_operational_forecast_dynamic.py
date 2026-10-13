@@ -1,18 +1,24 @@
 """Testes da previsão operacional dinâmica após a atualização do ranking."""
 
 import unittest
+import warnings
 
+import numpy as np
 import pandas as pd
 
 from forecasting.operational_forecast import (
     CLIMATE_OPTIONS,
     FAIR_ORDER,
+    _normalize_climate,
     collect_future_context,
+    create_future_feature_rows,
     create_future_schedule,
     prepare_future_context,
     prepare_operational_history,
     run_operational_forecast,
 )
+from forecasting.mlp_model import create_mlp_pipeline, MLP_CONFIGURATIONS
+from forecasting.statistical_models import REGRESSION_FEATURES
 from preprocessing.features import (
     add_historical_features,
     add_temporal_features,
@@ -20,6 +26,7 @@ from preprocessing.features import (
 
 
 CATEGORIES = ["Comum", "Doce", "Especial"]
+TRAINING_CLIMATES = ["SOL", "FRIO", "GAROA", "CHUVA_MODERADA", "CHUVA_FORTE"]
 FAIR_OFFSETS = {
     "QUA": 2,
     "QUI": 3,
@@ -55,8 +62,8 @@ def _build_category_fair_data(weeks: int = 12) -> pd.DataFrame:
                         "serie": series,
                         "feira": fair,
                         "categoria": category,
-                        "clima": CLIMATE_OPTIONS[
-                            (week + fair_index) % len(CLIMATE_OPTIONS)
+                        "clima": TRAINING_CLIMATES[
+                            (week + fair_index) % len(TRAINING_CLIMATES)
                         ],
                         "eh_feriado": int(week == 5),
                         "nome_feriado": "Teste" if week == 5 else "",
@@ -129,7 +136,7 @@ class DynamicOperationalForecastTests(unittest.TestCase):
         self.assertGreater(int(diagnostics["linhas_treino_modelo"].iloc[0]), 0)
         self.assertEqual(
             set(predictions["clima"]),
-            set(_build_future_context()["clima"]),
+            set(TRAINING_CLIMATES),
         )
 
     def test_all_previous_models_have_operational_strategy(self) -> None:
@@ -186,7 +193,7 @@ class DynamicOperationalForecastTests(unittest.TestCase):
         )
 
         self.assertEqual(len(context), 6)
-        self.assertEqual(context.loc[0, "clima"], "Chuva Moderado")
+        self.assertEqual(context.loc[0, "clima"], "CHUVA_MODERADA")
         self.assertTrue(context["eh_feriado"].eq(0).all())
         prepared = prepare_future_context(schedule, context)
         self.assertTrue(
@@ -194,6 +201,52 @@ class DynamicOperationalForecastTests(unittest.TestCase):
                 schedule["data_venda_prevista"]
             )
         )
+        self.assertTrue(prepared["clima"].equals(context["clima"]))
+
+    def test_climate_aliases_use_mysql_codes_and_are_idempotent(self) -> None:
+        variants = {
+            "SOL": ["Sol", " sol ", "sOl", "SOL"],
+            "FRIO": ["Frio", "frio", "FRIO"],
+            "GAROA": ["Garoa", "garoa", "GAROA"],
+            "CHUVA_MODERADA": ["Chuva Moderado", "chuva moderada",
+                               " CHUVA   MODERADA ", "CHUVA_MODERADA"],
+            "CHUVA_FORTE": ["Chuva Forte", "chuva forte", "CHUVA_FORTE"],
+        }
+        for expected, aliases in variants.items():
+            for value in aliases:
+                with self.subTest(value=value):
+                    self.assertEqual(_normalize_climate(value), expected)
+                    self.assertEqual(_normalize_climate(_normalize_climate(value)), expected)
+
+    def test_invalid_climate_is_rejected_instead_of_becoming_unknown(self) -> None:
+        for value in (None, float("nan"), "", "Nublado", "CHUVA_LEVE"):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "Clima inválido"):
+                    _normalize_climate(value)
+
+    def test_friendly_climate_encodes_as_the_known_training_category(self) -> None:
+        data = _build_category_fair_data()
+        history, cutoff = prepare_operational_history(data, 4)
+        schedule = create_future_schedule(history, cutoff)
+        friendly_context = _build_future_context()
+        prepared = prepare_future_context(schedule, friendly_context)
+        future = create_future_feature_rows(history, schedule, prepared)
+        canonical = friendly_context.copy()
+        canonical["clima"] = [TRAINING_CLIMATES[i % 5] for i in range(6)]
+        canonical = prepare_future_context(schedule, canonical)
+        expected_future = create_future_feature_rows(history, schedule, canonical)
+        training = data.dropna(subset=["lag_1", "lag_2", "lag_3", "media_movel_4"])
+        preprocessing = create_mlp_pipeline(MLP_CONFIGURATIONS[0]).regressor.named_steps["pre_processamento"]
+        preprocessing.fit(training[REGRESSION_FEATURES])
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            actual = preprocessing.transform(future[REGRESSION_FEATURES])
+            expected = preprocessing.transform(expected_future[REGRESSION_FEATURES])
+        self.assertFalse(any("Found unknown categories" in str(item.message) for item in captured))
+        if hasattr(actual, "toarray"):
+            actual, expected = actual.toarray(), expected.toarray()
+        np.testing.assert_array_equal(actual, expected)
+        self.assertEqual(set(future["clima"]), set(TRAINING_CLIMATES))
 
     def test_future_context_rejects_missing_holiday_name(self) -> None:
         data = _build_category_fair_data()
