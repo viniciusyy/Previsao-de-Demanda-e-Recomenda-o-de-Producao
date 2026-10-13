@@ -4,3 +4,21 @@ LIMITAÇÃO,Capacidade provisória,A capacidade usa o maior volume histórico po
 PREMISSA,Contexto futuro,Clima e feriado foram informados explicitamente para seis feiras.
 DECISÃO,Critério de seleção do modelo,MLP global foi escolhido pelo menor MAE. O menor RMSE pertence a Regressão linear global. O menor MAPE pertence a Suavização exponencial simples.
 PREMISSA,Validade do snapshot,"Modelo líder, previsões, proporções e capacidades devem ser recalculados após novas inserções no MySQL."
+ALERTA,Revisar previsão: QUA | Comum,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: QUA | Doce,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: QUA | Especial,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: QUI | Comum,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: QUI | Doce,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: QUI | Especial,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: SAB_C | Comum,previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: SAB_C | Doce,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: SAB_C | Especial,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: SAB_E | Comum,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: SAB_E | Doce,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: SAB_E | Especial,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: DOM_C | Comum,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: DOM_C | Doce,previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: DOM_C | Especial,previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: DOM_E | Comum,previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: DOM_E | Doce,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+ALERTA,Revisar previsão: DOM_E | Especial,atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.

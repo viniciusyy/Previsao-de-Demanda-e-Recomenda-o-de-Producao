@@ -1,0 +1,19 @@
+﻿serie,data_producao_prevista,data_venda_prevista,eh_feriado,tendencia_serie,lag_1,lag_2,lag_3,feira,categoria,clima,nome_feriado,fonte_contexto_futuro,media_movel_2,media_movel_3,media_movel_4,data_corte,modelo
+DOM_C | Comum,2026-10-10,2026-10-11,0,20,1062.0,998.0,976.0,DOM_C,Comum,Frio,,informado_no_terminal,1030.0,1012.0,956.5,2026-10-04,mlp_global
+DOM_C | Doce,2026-10-10,2026-10-11,0,20,17.0,15.0,11.0,DOM_C,Doce,Frio,,informado_no_terminal,16.0,14.333333333333334,13.5,2026-10-04,mlp_global
+DOM_C | Especial,2026-10-10,2026-10-11,0,20,55.0,60.0,71.0,DOM_C,Especial,Frio,,informado_no_terminal,57.5,62.0,60.25,2026-10-04,mlp_global
+DOM_E | Comum,2026-10-10,2026-10-11,0,20,682.0,675.0,581.0,DOM_E,Comum,Frio,,informado_no_terminal,678.5,646.0,604.75,2026-10-04,mlp_global
+DOM_E | Doce,2026-10-10,2026-10-11,0,20,9.0,6.0,8.0,DOM_E,Doce,Frio,,informado_no_terminal,7.5,7.666666666666667,7.0,2026-10-04,mlp_global
+DOM_E | Especial,2026-10-10,2026-10-11,0,20,36.0,36.0,36.0,DOM_E,Especial,Frio,,informado_no_terminal,36.0,36.0,35.75,2026-10-04,mlp_global
+QUA | Comum,2026-10-06,2026-10-07,0,20,470.0,366.0,502.0,QUA,Comum,Sol,,informado_no_terminal,418.0,446.0,421.5,2026-10-04,mlp_global
+QUA | Doce,2026-10-06,2026-10-07,0,20,27.0,31.0,36.0,QUA,Doce,Sol,,informado_no_terminal,29.0,31.333333333333332,32.0,2026-10-04,mlp_global
+QUA | Especial,2026-10-06,2026-10-07,0,20,22.0,11.0,21.0,QUA,Especial,Sol,,informado_no_terminal,16.5,18.0,18.0,2026-10-04,mlp_global
+QUI | Comum,2026-10-07,2026-10-08,0,20,748.0,661.0,707.0,QUI,Comum,Sol,,informado_no_terminal,704.5,705.3333333333334,625.0,2026-10-04,mlp_global
+QUI | Doce,2026-10-07,2026-10-08,0,20,11.0,13.0,13.0,QUI,Doce,Sol,,informado_no_terminal,12.0,12.333333333333334,12.5,2026-10-04,mlp_global
+QUI | Especial,2026-10-07,2026-10-08,0,20,31.0,22.0,41.0,QUI,Especial,Sol,,informado_no_terminal,26.5,31.333333333333332,28.5,2026-10-04,mlp_global
+SAB_C | Comum,2026-10-09,2026-10-10,0,20,734.0,786.0,759.0,SAB_C,Comum,Sol,,informado_no_terminal,760.0,759.6666666666666,694.75,2026-10-04,mlp_global
+SAB_C | Doce,2026-10-09,2026-10-10,0,20,11.0,11.0,11.0,SAB_C,Doce,Sol,,informado_no_terminal,11.0,11.0,10.5,2026-10-04,mlp_global
+SAB_C | Especial,2026-10-09,2026-10-10,0,20,33.0,36.0,44.0,SAB_C,Especial,Sol,,informado_no_terminal,34.5,37.666666666666664,37.0,2026-10-04,mlp_global
+SAB_E | Comum,2026-10-09,2026-10-10,0,20,838.0,751.0,795.0,SAB_E,Comum,Sol,,informado_no_terminal,794.5,794.6666666666666,778.75,2026-10-04,mlp_global
+SAB_E | Doce,2026-10-09,2026-10-10,0,20,14.0,13.0,13.0,SAB_E,Doce,Sol,,informado_no_terminal,13.5,13.333333333333334,12.5,2026-10-04,mlp_global
+SAB_E | Especial,2026-10-09,2026-10-10,0,20,37.0,39.0,32.0,SAB_E,Especial,Sol,,informado_no_terminal,38.0,36.0,35.75,2026-10-04,mlp_global

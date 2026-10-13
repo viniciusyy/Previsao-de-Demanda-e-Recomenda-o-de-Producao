@@ -33,8 +33,8 @@
 | QUI | 08/10/2026 | Sol | não |  |
 | SAB_C | 10/10/2026 | Sol | não |  |
 | SAB_E | 10/10/2026 | Sol | não |  |
-| DOM_C | 11/10/2026 | Sol | não |  |
-| DOM_E | 11/10/2026 | Sol | não |  |
+| DOM_C | 11/10/2026 | Frio | não |  |
+| DOM_E | 11/10/2026 | Frio | não |  |
 
 ## Capacidades utilizadas
 
@@ -96,6 +96,24 @@ O plano detalhado por produto está disponível em `plano_producao_operacional.c
 - **PREMISSA — Contexto futuro:** Clima e feriado foram informados explicitamente para seis feiras.
 - **DECISÃO — Critério de seleção do modelo:** MLP global foi escolhido pelo menor MAE. O menor RMSE pertence a Regressão linear global. O menor MAPE pertence a Suavização exponencial simples.
 - **PREMISSA — Validade do snapshot:** Modelo líder, previsões, proporções e capacidades devem ser recalculados após novas inserções no MySQL.
+- **ALERTA — Revisar previsão: QUA | Comum:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: QUA | Doce:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: QUA | Especial:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: QUI | Comum:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: QUI | Doce:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: QUI | Especial:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: SAB_C | Comum:** previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: SAB_C | Doce:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: SAB_C | Especial:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: SAB_E | Comum:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: SAB_E | Doce:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: SAB_E | Especial:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: DOM_C | Comum:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: DOM_C | Doce:** previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: DOM_C | Especial:** previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: DOM_E | Comum:** previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: DOM_E | Doce:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
+- **ALERTA — Revisar previsão: DOM_E | Especial:** atributos futuros fora da faixa/categorias vistas no treino; nenhum modelo ou valor foi alterado.
 
 ## Validação da consolidação
 
@@ -104,3 +122,32 @@ Foram aprovadas **12 de 12** verificações da consolidação final.
 ## Decisão operacional
 
 A recomendação apresentada utiliza o modelo líder revalidado no snapshot atual, distribui a previsão pelas participações históricas dos produtos e aplica o limite operacional por meio do dual Simplex. Uma nova execução deve ser realizada sempre que o banco de dados ou as premissas futuras forem atualizados.
+
+## Auditoria diagnóstica das previsões
+
+A comparação por série é diagnóstica: não escolhe outro modelo nem limita quantidades automaticamente. A faixa empírica de vendas não é um intervalo probabilístico, uma capacidade física ou uma prova de bug. Vendas e produção são registradas separadamente.
+
+**Há séries que devem ser revisadas antes do uso operacional.**
+
+| Série | Previsão | Máximo vendido | Média móvel 4 | Motivos |
+| --- | --- | --- | --- | --- |
+| QUA \| Comum | 422 | 502.0 | 421.5 | atributos futuros fora da faixa/categorias vistas no treino |
+| QUA \| Doce | 29 | 36.0 | 32.0 | atributos futuros fora da faixa/categorias vistas no treino |
+| QUA \| Especial | 13 | 22.0 | 18.0 | atributos futuros fora da faixa/categorias vistas no treino |
+| QUI \| Comum | 687 | 1276.0 | 625.0 | atributos futuros fora da faixa/categorias vistas no treino |
+| QUI \| Doce | 11 | 17.0 | 12.5 | atributos futuros fora da faixa/categorias vistas no treino |
+| QUI \| Especial | 29 | 102.0 | 28.5 | atributos futuros fora da faixa/categorias vistas no treino |
+| SAB_C \| Comum | 842 | 786.0 | 694.75 | previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino |
+| SAB_C \| Doce | 10 | 13.0 | 10.5 | atributos futuros fora da faixa/categorias vistas no treino |
+| SAB_C \| Especial | 32 | 44.0 | 37.0 | atributos futuros fora da faixa/categorias vistas no treino |
+| SAB_E \| Comum | 769 | 838.0 | 778.75 | atributos futuros fora da faixa/categorias vistas no treino |
+| SAB_E \| Doce | 12 | 15.0 | 12.5 | atributos futuros fora da faixa/categorias vistas no treino |
+| SAB_E \| Especial | 33 | 44.0 | 35.75 | atributos futuros fora da faixa/categorias vistas no treino |
+| DOM_C \| Comum | 1026 | 1062.0 | 956.5 | atributos futuros fora da faixa/categorias vistas no treino |
+| DOM_C \| Doce | 64 | 18.0 | 13.5 | previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino |
+| DOM_C \| Especial | 121 | 71.0 | 60.25 | previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino |
+| DOM_E \| Comum | 688 | 682.0 | 604.75 | previsão acima do máximo histórico de vendas; atributos futuros fora da faixa/categorias vistas no treino |
+| DOM_E \| Doce | 6 | 13.0 | 7.0 | atributos futuros fora da faixa/categorias vistas no treino |
+| DOM_E \| Especial | 31 | 47.0 | 35.75 | atributos futuros fora da faixa/categorias vistas no treino |
+
+Evidências atuais e métricas por série: `reports/audit/`.

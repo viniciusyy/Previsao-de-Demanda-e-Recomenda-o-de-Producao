@@ -1,4 +1,4 @@
-"""Testes da consolidação operacional e documentação final ."""
+"""Testes da consolidação operacional e documentação final da Fase 14."""
 
 import tempfile
 import unittest
@@ -184,6 +184,35 @@ def _build_phase_inputs() -> tuple[
 
 
 class FinalConsolidationTests(unittest.TestCase):
+    def test_audit_marks_plan_without_changing_quantities(self):
+        ranking, operational, distribution, recommendation = _build_phase_inputs()
+        baseline = run_final_consolidation(ranking, operational, distribution, recommendation, 700)
+        forecasts = operational["previsoes_operacionais_categoria_feira"]
+        audit = forecasts[["data_corte", "feira", "categoria", "modelo"]].copy()
+        audit = audit.rename(columns={"modelo": "modelo_operacional"})
+        audit["serie"] = audit["feira"] + " | " + audit["categoria"]
+        audit["status_auditoria"] = "SEM_ALERTA_PELAS_REGRAS"
+        mask = audit["serie"].eq("DOM_C | Doce")
+        audit.loc[mask, "status_auditoria"] = "REVISAR"
+        audit["motivos"] = "previsão acima do máximo histórico de vendas"
+        audit["previsao_operacional"] = forecasts["previsao_operacional"]
+        audit["maximo_vendido_historico"] = 10
+        audit["media_movel_4"] = 8
+        audited = run_final_consolidation(ranking, operational, distribution, recommendation, 700,
+                                          {"auditoria_previsao_por_serie": audit})
+        plan = audited["plano_producao_operacional"]
+        pd.testing.assert_series_equal(plan["recomendacao_producao"], baseline["plano_producao_operacional"]["recomendacao_producao"])
+        marked = plan.loc[plan["feira"].eq("DOM_C") & plan["categoria"].eq("Doce")]
+        self.assertFalse(marked.empty)
+        self.assertTrue(marked["observacao_operacional"].str.contains("REVISAR").all())
+        self.assertEqual(audited["resumo_execucao_final"]["series_previsao_com_alerta"].iloc[0], 1)
+        self.assertIn("revisadas antes", audited["relatorio_operacional_final"])
+        stale = audit.copy()
+        stale["data_corte"] = pd.Timestamp("2000-01-01")
+        with self.assertRaisesRegex(ValueError, "corte atuais"):
+            run_final_consolidation(ranking, operational, distribution, recommendation, 700,
+                                    {"auditoria_previsao_por_serie": stale})
+
     def test_final_package_is_reconciled_and_saved(self) -> None:
         (
             ranking,
@@ -272,4 +301,5 @@ class FinalConsolidationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

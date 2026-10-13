@@ -4,8 +4,6 @@ Recomendação de Produção para uma Pastelaria.
 
 Trabalho de Conclusão de Curso - Ciência da Computação.
 
-Consolidação operacional e documentação final.
-
 """
 
 import warnings
@@ -18,10 +16,14 @@ from database.repository import (
 )
 from evaluation.temporal_validation import run_temporal_validation
 from forecasting.baselines import run_baseline_evaluation
-from forecasting.mlp_model import run_mlp_evaluation
-from forecasting.operational_forecast import run_operational_forecast
+from forecasting.mlp_model import run_mlp_evaluation, save_mlp_outputs
+from forecasting.operational_forecast import (
+    run_operational_forecast,
+    save_operational_forecast_outputs,
+)
 from forecasting.product_distribution import (
     run_product_distribution,
+    save_product_distribution_outputs,
 )
 from forecasting.statistical_models import run_statistical_model_evaluation
 from optimization.production_recommendation import (
@@ -34,10 +36,14 @@ from reporting.final_consolidation import (
     run_final_consolidation,
     save_final_consolidation_outputs,
 )
+from reporting.forecast_audit import (
+    run_forecast_audit,
+    save_forecast_audit_outputs,
+)
 
 
 def main() -> None:
-    
+   
 
     print("=" * 70)
     print("SISTEMA DE PREVISÃO DE DEMANDA")
@@ -243,6 +249,30 @@ def main() -> None:
         )
 
         print()
+        print("Salvando avaliação e previsões do snapshot atual...")
+        intermediate_files = save_mlp_outputs(phase10_analyses)
+        intermediate_files.extend(save_operational_forecast_outputs(phase11_analyses))
+
+        audit_analyses = run_forecast_audit(
+            category_fair_data=category_fair_data,
+            operational_analyses=phase11_analyses,
+            comparison_predictions=phase10_analyses["previsoes_comparacao_fase10"],
+            source_data=dataframe,
+        )
+        audit_files = save_forecast_audit_outputs(audit_analyses)
+        audit = audit_analyses["auditoria_previsao_por_serie"]
+        review = audit.loc[audit["status_auditoria"].eq("REVISAR")]
+        print()
+        print("AUDITORIA DIAGNÓSTICA POR FEIRA + CATEGORIA")
+        if review.empty:
+            print("Nenhum alerta pelas regras exploratórias; isso não garante acurácia futura.")
+        else:
+            print(review[["serie", "previsao_operacional", "maximo_vendido_historico",
+                          "media_movel_3", "media_movel_4", "motivos"]].to_string(index=False))
+            print("ATENÇÃO: revisar essas séries antes de utilizar o plano para produção.")
+        print("A auditoria não altera modelo nem quantidades e não prova um bug por si só.")
+
+        print()
         print("Recriando a distribuição das previsões entre produtos...")
 
         phase12_analyses = run_product_distribution(
@@ -250,6 +280,7 @@ def main() -> None:
             category_forecasts=category_forecasts,
             source_record_count=len(dataframe),
         )
+        intermediate_files.extend(save_product_distribution_outputs(phase12_analyses))
 
         predictions = phase12_analyses[
             "previsoes_operacionais_produto_feira"
@@ -431,6 +462,7 @@ def main() -> None:
             distribution_analyses=phase12_analyses,
             recommendation_analyses=analyses,
             censored_count=len(censored_data),
+            forecast_audit=audit_analyses,
         )
         final_files = save_final_consolidation_outputs(final_artifacts)
         final_summary = final_artifacts["resumo_execucao_final"].iloc[0]
@@ -493,6 +525,15 @@ def main() -> None:
             print(f"- {path.name}")
 
         print()
+        print("Resultados intermediários atualizados:")
+        for path in intermediate_files:
+            print(f"- {path.relative_to(path.parents[2])}")
+        print()
+        print("Auditoria do snapshot atual:")
+        for path in audit_files:
+            print(f"- {path.name}")
+
+        print()
         print("=" * 70)
         print("EXECUTADA COM SUCESSO")
         print("=" * 70)
@@ -506,6 +547,9 @@ def main() -> None:
         print("O plano operacional detalhado foi consolidado.")
         print("As premissas e limitações foram registradas no relatório final.")
         print("A configuração da capacidade poderá ser substituída no futuro.")
+        if not review.empty:
+            print("ATENÇÃO: há previsões sinalizadas para revisão; não adotar essas linhas automaticamente.")
+        print("A implementação da auditoria será validada com os resultados da execução atual.")
 
     except Exception as exc:
         print()
@@ -518,7 +562,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
 
 

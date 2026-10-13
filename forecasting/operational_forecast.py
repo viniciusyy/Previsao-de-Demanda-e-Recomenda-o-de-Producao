@@ -923,6 +923,11 @@ def create_operational_predictions(
     ).drop(columns="_ordem_feira").reset_index(drop=True)
 
     artifacts = {
+        "atributos_futuros_previsao": future_features.reindex(
+            columns=["serie", "data_producao_prevista", "data_venda_prevista",
+                     *REGRESSION_FEATURES, "nome_feriado", "fonte_contexto_futuro",
+                     "media_movel_2", "media_movel_3", "media_movel_4"]
+        ).assign(data_corte=effective_cutoff, modelo=model_key),
         "contexto_futuro_previsao": prepared_context,
         "selecao_mlp_operacional": mlp_selection,
         "diagnostico_modelo_operacional": pd.DataFrame(diagnostics_rows),
@@ -1530,6 +1535,7 @@ def save_operational_forecast_outputs(
         "configuracao_previsao_operacional": tables_directory,
         "decisao_modelo_operacional": tables_directory,
         "contexto_futuro_previsao": forecasts_directory,
+        "atributos_futuros_previsao": forecasts_directory,
         "selecao_mlp_operacional": tables_directory,
         "diagnostico_modelo_operacional": tables_directory,
     }

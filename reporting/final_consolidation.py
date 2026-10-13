@@ -781,6 +781,7 @@ def run_final_consolidation(
     distribution_analyses: dict[str, pd.DataFrame],
     recommendation_analyses: dict[str, pd.DataFrame],
     censored_count: int,
+    forecast_audit: dict[str, pd.DataFrame] | None = None,
 ) -> dict[str, FinalArtifact]:
     """Consolida as saídas validadas do pipeline completo."""
 
@@ -840,6 +841,51 @@ def run_final_consolidation(
         ranking=ranking,
         future_context=future_context,
     )
+    review = pd.DataFrame()
+    if forecast_audit is not None:
+        audit = _require_dataframe(forecast_audit, "auditoria_previsao_por_serie")
+        audit_keys = set(audit[["feira", "categoria"]].itertuples(index=False, name=None))
+        forecast_keys = set(category_forecasts[["feira", "categoria"]].itertuples(index=False, name=None))
+        audit_cuts = pd.to_datetime(audit["data_corte"], errors="raise")
+        current_cut = pd.Timestamp(operational_decision["data_corte"])
+        if (audit_keys != forecast_keys or audit.duplicated(["feira", "categoria"]).any()
+                or not audit_cuts.eq(current_cut).all()):
+            raise ValueError("Auditoria não corresponde às séries e ao corte atuais.")
+        expected_models = category_forecasts[["feira", "categoria", "modelo"]].merge(
+            audit[["feira", "categoria", "modelo_operacional"]],
+            on=["feira", "categoria"], validate="one_to_one",
+        )
+        if not expected_models["modelo"].eq(expected_models["modelo_operacional"]).all():
+            raise ValueError("Modelo da auditoria diverge da previsão atual.")
+        audited_values = category_forecasts[["feira", "categoria", "previsao_operacional"]].merge(
+            audit[["feira", "categoria", "previsao_operacional"]],
+            on=["feira", "categoria"], validate="one_to_one", suffixes=("", "_auditoria"),
+        )
+        if not audited_values["previsao_operacional"].eq(audited_values["previsao_operacional_auditoria"]).all():
+            raise ValueError("Valores da auditoria divergem da previsão atual.")
+        if not audit["status_auditoria"].isin(["REVISAR", "SEM_ALERTA_PELAS_REGRAS"]).all():
+            raise ValueError("Status de auditoria inválido.")
+        review = audit.loc[audit["status_auditoria"].eq("REVISAR")]
+        flagged_keys = set(review[["feira", "categoria"]].itertuples(index=False, name=None))
+        plan["status_auditoria_previsao"] = [
+            "REVISAR" if key in flagged_keys else "SEM_ALERTA_PELAS_REGRAS"
+            for key in plan[["feira", "categoria"]].itertuples(index=False, name=None)
+        ]
+        marked = plan["status_auditoria_previsao"].eq("REVISAR")
+        plan.loc[marked, "observacao_operacional"] = (
+            "REVISAR previsão antes de produzir; quantidade calculada não alterada"
+        )
+        summary["series_previsao_com_alerta"] = len(review)
+        summary["status"] = (
+            "Plano calculado com alertas; requer revisão antes do uso operacional."
+            if not review.empty else
+            "Plano auditado sem alertas pelas regras; acurácia futura não garantida."
+        )
+        if not review.empty:
+            rows = [{"nivel": "ALERTA", "item": f"Revisar previsão: {row['serie']}",
+                     "detalhes": row["motivos"] + "; nenhum modelo ou valor foi alterado."}
+                    for _, row in review.iterrows()]
+            alerts = pd.concat([alerts, pd.DataFrame(rows)], ignore_index=True)
     validation = validate_final_consolidation(
         ranking=ranking,
         operational_decision=operational_decision,
@@ -876,6 +922,24 @@ def run_final_consolidation(
         alerts=alerts,
         validation=validation,
     )
+
+    if forecast_audit is not None:
+        report += "\n## Auditoria diagnóstica das previsões\n\n"
+        report += (
+            "A comparação por série é diagnóstica: não escolhe outro modelo nem "
+            "limita quantidades automaticamente. A faixa empírica de vendas não é "
+            "um intervalo probabilístico, uma capacidade física ou uma prova de bug. "
+            "Vendas e produção são registradas separadamente.\n\n"
+        )
+        report += (
+            "**Há séries que devem ser revisadas antes do uso operacional.**\n\n"
+            + _markdown_table(review,
+                ["serie", "previsao_operacional", "maximo_vendido_historico", "media_movel_4", "motivos"],
+                ["Série", "Previsão", "Máximo vendido", "Média móvel 4", "Motivos"])
+            if not review.empty else
+            "Nenhuma série foi sinalizada pelas regras exploratórias; isso não garante acurácia futura."
+        )
+        report += "\n\nEvidências atuais e métricas por série: `reports/audit/`.\n"
 
     return {
         SUMMARY_KEY: summary,
@@ -923,4 +987,5 @@ def save_final_consolidation_outputs(
     generated.append(report_path)
 
     return generated
+
 
