@@ -1,13 +1,13 @@
 ﻿teste,resultado,detalhes
 Validações anteriores preservadas,OK,"Falhas encontradas: {'previsão operacional': 0, 'distribuição por produto': 0, 'recomendação por Simplex': 0}"
 Modelo operacional igual ao líder revalidado,OK,Ranking: mlp_global; operacional: mlp_global
-Snapshot e data de corte consistentes,OK,Registros: [3002]; datas: [Timestamp('2026-10-04 00:00:00')]
+Snapshot e data de corte consistentes,OK,Registros: [3160]; datas: [Timestamp('2026-10-11 00:00:00')]
 Cobertura operacional completa,OK,Categorias: 18; combinações produto + feira: 162
 Plano contém somente produção permitida e positiva,OK,Linhas acionáveis: 157
 Plano operacional sem duplicidades,OK,Duplicidades encontradas: 0
-Totais do plano reconciliados,OK,Recomendações: 4772; plano: 4772; resumo: 4772
-Resumos por dia e feira reconciliados,OK,Dias: 4772; feiras: 4772; final: 4772
+Totais do plano reconciliados,OK,Recomendações: 3363; plano: 3363; resumo: 3363
+Resumos por dia e feira reconciliados,OK,Dias: 3363; feiras: 3363; final: 3363
 Indicadores finais válidos,OK,Métricas e totais devem ser finitos e não negativos.
 Contexto futuro documentado,OK,Contexto requerido: sim; linhas: 6
 Premissas e limitações documentadas,OK,"Itens registrados: ['Capacidade provisória', 'Contexto futuro', 'Critério de seleção do modelo', 'Demanda possivelmente censurada', 'Revisar previsão: DOM_C | Comum', 'Revisar previsão: DOM_C | Doce', 'Revisar previsão: DOM_C | Especial', 'Revisar previsão: DOM_E | Comum', 'Revisar previsão: DOM_E | Doce', 'Revisar previsão: DOM_E | Especial', 'Revisar previsão: QUA | Comum', 'Revisar previsão: QUA | Doce', 'Revisar previsão: QUA | Especial', 'Revisar previsão: QUI | Comum', 'Revisar previsão: QUI | Doce', 'Revisar previsão: QUI | Especial', 'Revisar previsão: SAB_C | Comum', 'Revisar previsão: SAB_C | Doce', 'Revisar previsão: SAB_C | Especial', 'Revisar previsão: SAB_E | Comum', 'Revisar previsão: SAB_E | Doce', 'Revisar previsão: SAB_E | Especial', 'Validade do snapshot']"
-Redução final explicada pela capacidade,OK,Redução reconciliada: 53
+Redução final explicada pela capacidade,OK,Redução reconciliada: 0
